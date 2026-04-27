@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { registrationApi } from '../../api/modules/registrationApi';
+import { registrationApi } from '../../../api/modules/registrationApi';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-import Header from '../common/Header';
+import Header from '../../common/Header';
 
 const StudentRegistrationForm = () => {
   const navigate = useNavigate();

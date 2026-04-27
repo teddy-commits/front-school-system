@@ -4,10 +4,11 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import StaffLogin from './component/auth/StaffLogin';
 import StudentLogin from './component/auth/StudentLogin';
-import StudentRegistrationForm from './component/registration/StudentRegistrationForm';
+import StudentRegistrationForm from './component/student/registration/StudentRegistrationForm';
 //import StaffDashboard from './component/dashboard/StaffDashboard';
 import StudentDashboard from './component/dashboard/StudentDashboard';
 import Homepage from './pages/Homepage';
+import AdminDashboard from './component/admin/AdminDashboard';
 // Protected Route component based on user type
 const ProtectedRoute: React.FC<{ 
   children: React.ReactNode; 
@@ -50,15 +51,14 @@ function AppContent() {
         <Route path="/login/student" element={<StudentLogin />} />
         <Route path="/register" element={<StudentRegistrationForm />} />
         
-        {/* Staff/Admin Routes */}
-       {/*  <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute allowedUserTypes={['staff']}>
-              <StaffDashboard />
-            </ProtectedRoute>
-          }
-        /> */}
+     <Route
+  path="/dashboard/*"
+  element={
+    <ProtectedRoute allowedUserTypes={['staff']}>
+      <AdminDashboard />
+    </ProtectedRoute>
+  }
+/>
         
         {/* Student Routes */}
         <Route
