@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { registrationApi } from '../../api/modules/registrationApi';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import Header from '../common/Header';
 
 const StudentRegistrationForm = () => {
   const navigate = useNavigate();
@@ -62,6 +63,8 @@ const StudentRegistrationForm = () => {
   };
 
   return (
+    <>
+    <Header/>
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
@@ -303,6 +306,7 @@ const StudentRegistrationForm = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

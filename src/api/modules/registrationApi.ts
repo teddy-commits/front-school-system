@@ -4,7 +4,7 @@ export const registrationApi = {
   // Register a new student (Public endpoint - no auth required)
   registerStudent: async (studentData) => {
     try {
-      const response = await apiClient.post('/api/v1/registration/students/register', studentData);
+      const response = await apiClient.post('/registration/students/register', studentData);
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);
@@ -14,7 +14,7 @@ export const registrationApi = {
   // Get all students (Requires authentication - Admin only)
   getAllStudents: async () => {
     try {
-      const response = await apiClient.get('/api/v1/registration/students');
+      const response = await apiClient.get('/registration/students');
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);

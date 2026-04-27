@@ -2,8 +2,10 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 
 // API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-const AUTH_URL = import.meta.env.VITE_AUTH_URL || 'http://localhost:8080/auth';
+// For API calls (protected endpoints) - baseURL includes /api/v1
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
+// For Auth calls (login/logout) - baseURL is just the server root
+const AUTH_URL = import.meta.env.VITE_AUTH_URL || 'http://localhost:8080';
 const API_TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT || '30000');
 
 // Create axios instances
@@ -13,15 +15,19 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Important for CORS
 });
 
 export const authClient = axios.create({
-  baseURL: AUTH_URL,
+  baseURL: API_BASE_URL,
   timeout: API_TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Important for CORS
 });
+
+// Rest of your client.ts code remains the same...
 
 // Request interceptor - Add Auth Token
 apiClient.interceptors.request.use(
