@@ -43,18 +43,34 @@ export type Role =
   | 'STUDENT' 
   | 'UNDERGRADUATE_STUDENT' 
   | 'POSTGRADUATE_STUDENT'
+  | 'RESEARCH_STUDENT'
   | 'INSTRUCTOR' 
+  | 'SENIOR_INSTRUCTOR'
   | 'PROFESSOR' 
+  | 'ASSOCIATE_PROFESSOR'
+  | 'ASSISTANT_PROFESSOR'
   | 'ACADEMIC_ADMINISTRATOR'
+  | 'HOD'
+  | 'DEAN'
+  | 'REGISTRAR'
   | 'MANAGEMENT' 
+  | 'FINANCE_MANAGER'
+  | 'HR_MANAGER'
   | 'ADMIN' 
   | 'SUPER_ADMIN';
 
-export type UserType = 'STUDENT' | 'INSTRUCTOR' | 'ACADEMIC_ADMINISTRATOR' | 'MANAGEMENT' | 'ADMIN' | 'USER';
+export type UserType = 
+  | 'STUDENT' 
+  | 'INSTRUCTOR' 
+  | 'ACADEMIC_ADMINISTRATOR' 
+  | 'MANAGEMENT' 
+  | 'ADMIN' 
+  | 'USER';
 
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
   message?: string;
   status?: number;
+  errors?: Record<string, string>;
 }
