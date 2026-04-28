@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Plus, Edit, Trash2, Eye, Search, DollarSign, 
-  Calendar, Building2, RefreshCw, X, CheckCircle, AlertCircle
+  Plus, Edit, Trash2, Search, DollarSign, 
+  RefreshCw, X, CheckCircle, AlertCircle
 } from 'lucide-react';
 import { financeApi } from '../../../api/modules/financeApi';
 import { registrationApi } from '../../../api/modules/registrationApi';
@@ -47,28 +47,56 @@ const FeeManagement: React.FC = () => {
     filterFees();
   }, [searchTerm, selectedType, feeStructures]);
 
-  const fetchFeeStructures = async () => {
-    setIsLoading(true);
-    try {
-      const result = await financeApi.getAllFeeStructures();
-      if (result.success) {
-        setFeeStructures(result.data);
-      } else {
-        toast.error(result.message);
+ const fetchFeeStructures = async () => {
+  setIsLoading(true);
+  try {
+    console.log('Fetching fee structures...');
+    const result = await financeApi.getAllFeeStructures();
+    console.log('API Response:', result);
+    
+    if (result.success) {
+      // Check what data structure is returned
+      console.log('Data received:', result.data);
+      console.log('Is data an array?', Array.isArray(result.data));
+      console.log('Data type:', typeof result.data);
+      
+      // Handle different response structures
+      let feeData = [];
+      if (Array.isArray(result.data)) {
+        feeData = result.data;
+      } else if (result.data && typeof result.data === 'object') {
+        // If response is an object with a content or items property
+        if (result.data.content && Array.isArray(result.data.content)) {
+          feeData = result.data.content;
+        } else if (result.data.items && Array.isArray(result.data.items)) {
+          feeData = result.data.items;
+        } else {
+          console.warn('Unexpected data structure:', result.data);
+          feeData = [];
+        }
       }
-    } catch (error) {
-      console.error('Error fetching fee structures:', error);
-      toast.error('Failed to load fee structures');
-    } finally {
-      setIsLoading(false);
+      
+      setFeeStructures(feeData);
+      toast.success(`Loaded ${feeData.length} fee structures`);
+    } else {
+      console.error('API Error:', result.message);
+      toast.error(result.message || 'Failed to load fee structures');
+      setFeeStructures([]);
     }
-  };
+  } catch (error) {
+    console.error('Error fetching fee structures:', error);
+    toast.error('Failed to load fee structures');
+    setFeeStructures([]);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const fetchStudents = async () => {
     try {
       const result = await registrationApi.getAllStudents();
       if (result.success) {
-        setStudents(result.data);
+        setStudents(Array.isArray(result.data) ? result.data : []);
       }
     } catch (error) {
       console.error('Error fetching students:', error);
@@ -76,12 +104,14 @@ const FeeManagement: React.FC = () => {
   };
 
   const filterFees = () => {
-    let filtered = [...feeStructures];
+    // Ensure feeStructures is an array before spreading
+    const feeArray = Array.isArray(feeStructures) ? feeStructures : [];
+    let filtered = [...feeArray];
     
     if (searchTerm) {
       filtered = filtered.filter(fee =>
-        fee.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        fee.feeType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        fee.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        fee.feeType?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         fee.department?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
@@ -105,23 +135,38 @@ const FeeManagement: React.FC = () => {
     }
   };
 
-  const handleGenerateFee = async (studentId: number, feeStructureId: number, semester: string, academicYear: number) => {
-    const result = await financeApi.generateStudentFee(studentId, feeStructureId, semester, academicYear);
-    if (result.success) {
-      toast.success('Fee generated for student');
-    } else {
-      toast.error(result.message);
-    }
-  };
-
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
   };
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Not set';
-    return new Date(dateString).toLocaleDateString();
+    try {
+      return new Date(dateString).toLocaleDateString();
+    } catch {
+      return 'Invalid date';
+    }
   };
+
+  // Safely calculate total revenue
+  const calculateTotalRevenue = () => {
+    const feeArray = Array.isArray(feeStructures) ? feeStructures : [];
+    return feeArray.reduce((sum, f) => sum + (f.amount || 0), 0);
+  };
+
+  // Safely count mandatory fees
+  const countMandatoryFees = () => {
+    const feeArray = Array.isArray(feeStructures) ? feeStructures : [];
+    return feeArray.filter(f => f.isMandatory).length;
+  };
+
+  // Safely count active structures
+  const countActiveStructures = () => {
+    const feeArray = Array.isArray(feeStructures) ? feeStructures : [];
+    return feeArray.filter(f => f.isActive).length;
+  };
+
+  const feeStructuresArray = Array.isArray(feeStructures) ? feeStructures : [];
 
   return (
     <div>
@@ -155,7 +200,7 @@ const FeeManagement: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">Total Fee Structures</p>
-              <p className="text-2xl font-bold text-gray-800">{feeStructures.length}</p>
+              <p className="text-2xl font-bold text-gray-800">{feeStructuresArray.length}</p>
             </div>
             <DollarSign className="w-8 h-8 text-blue-500" />
           </div>
@@ -165,7 +210,7 @@ const FeeManagement: React.FC = () => {
             <div>
               <p className="text-sm text-gray-500">Total Revenue (Projected)</p>
               <p className="text-2xl font-bold text-green-600">
-                {formatCurrency(feeStructures.reduce((sum, f) => sum + f.amount, 0))}
+                {formatCurrency(calculateTotalRevenue())}
               </p>
             </div>
             <DollarSign className="w-8 h-8 text-green-500" />
@@ -176,7 +221,7 @@ const FeeManagement: React.FC = () => {
             <div>
               <p className="text-sm text-gray-500">Mandatory Fees</p>
               <p className="text-2xl font-bold text-purple-600">
-                {feeStructures.filter(f => f.isMandatory).length}
+                {countMandatoryFees()}
               </p>
             </div>
             <CheckCircle className="w-8 h-8 text-purple-500" />
@@ -187,7 +232,7 @@ const FeeManagement: React.FC = () => {
             <div>
               <p className="text-sm text-gray-500">Active Structures</p>
               <p className="text-2xl font-bold text-orange-600">
-                {feeStructures.filter(f => f.isActive).length}
+                {countActiveStructures()}
               </p>
             </div>
             <AlertCircle className="w-8 h-8 text-orange-500" />
@@ -309,6 +354,19 @@ const FeeManagement: React.FC = () => {
             </table>
           </div>
         )}
+        
+        {filteredFees.length === 0 && !isLoading && (
+          <div className="text-center py-12">
+            <DollarSign className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500">No fee structures found</p>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="mt-3 text-blue-600 hover:text-blue-700"
+            >
+              + Create your first fee structure
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Create Fee Structure Modal */}
@@ -332,7 +390,7 @@ const FeeManagement: React.FC = () => {
       {showGenerateModal && (
         <GenerateStudentFeeModal 
           students={students}
-          feeStructures={feeStructures}
+          feeStructures={feeStructuresArray}
           onClose={() => setShowGenerateModal(false)} 
           onSuccess={fetchFeeStructures}
         />
@@ -364,19 +422,27 @@ const CreateFeeStructureModal: React.FC<{ onClose: () => void; onSuccess: () => 
     setFormData({ ...formData, [e.target.name]: value });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    const result = await financeApi.createFeeStructure(formData);
-    if (result.success) {
-      toast.success('Fee structure created');
-      onSuccess();
-      onClose();
-    } else {
-      toast.error(result.message);
-    }
-    setIsLoading(false);
+// In CreateFeeStructureModal component, modify handleSubmit
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setIsLoading(true);
+  
+  // Format the dueDate to include time
+  const formattedData = {
+    ...formData,
+    dueDate: formData.dueDate ? `${formData.dueDate}T00:00:00` : null
   };
+  
+  const result = await financeApi.createFeeStructure(formattedData);
+  if (result.success) {
+    toast.success('Fee structure created');
+    onSuccess();
+    onClose();
+  } else {
+    toast.error(result.message);
+  }
+  setIsLoading(false);
+};
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -551,7 +617,9 @@ const GenerateStudentFeeModal: React.FC<{ students: any[]; feeStructures: any[];
             <label className="block text-sm font-medium text-gray-700 mb-1">Fee Structure</label>
             <select name="feeStructureId" value={formData.feeStructureId} onChange={(e) => setFormData({...formData, feeStructureId: e.target.value})} className="w-full px-3 py-2 border rounded-lg" required>
               <option value="">Select Fee Structure</option>
-              {feeStructures.map(f => <option key={f.id} value={f.id}>{f.description} - ${f.amount}</option>)}
+              {Array.isArray(feeStructures) && feeStructures.map(f => (
+                <option key={f.id} value={f.id}>{f.description} - {formatCurrency(f.amount)}</option>
+              ))}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -576,6 +644,11 @@ const GenerateStudentFeeModal: React.FC<{ students: any[]; feeStructures: any[];
       </div>
     </div>
   );
+};
+
+// Helper function for currency formatting in modal
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
 };
 
 export default FeeManagement;

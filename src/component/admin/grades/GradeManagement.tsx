@@ -254,22 +254,29 @@ const GradeManagement: React.FC = () => {
             />
           </div>
           <div className="w-64">
-            <select
-              value={selectedCourse}
-              onChange={(e) => {
-                setSelectedCourse(e.target.value);
-                if (e.target.value !== 'ALL') fetchCourseGrades(e.target.value);
-                else setGrades([]);
-              }}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="ALL">All Courses</option>
-              {courses.map(course => (
-                <option key={course.id} value={course.courseCode}>
-                  {course.courseCode} - {course.courseName}
-                </option>
-              ))}
-            </select>
+           // Update the course select onChange handler
+<select
+  value={selectedCourse}
+  onChange={(e) => {
+    const courseCode = e.target.value;
+    setSelectedCourse(courseCode);
+    if (courseCode !== 'ALL') {
+      fetchCourseGrades(courseCode);
+    } else {
+      // Clear grades when "All Courses" is selected
+      setGrades([]);
+      setFilteredGrades([]);
+    }
+  }}
+  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+>
+  <option value="ALL">All Courses</option>
+  {courses.map(course => (
+    <option key={course.id} value={course.courseCode}>
+      {course.courseCode} - {course.courseName}
+    </option>
+  ))}
+</select>
           </div>
           <div className="w-48">
             <select

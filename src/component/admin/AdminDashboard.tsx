@@ -27,23 +27,42 @@ const AdminDashboard: React.FC = () => {
   }, []);
 
   const fetchStats = async () => {
-    try {
-      const statsResult = await registrationApi.getUserStatistics();
-      if (statsResult.success) {
-        setStats({
-          totalStudents: statsResult.data.totalStudents || 0,
-          totalInstructors: statsResult.data.totalInstructors || 0,
-          totalCourses: 45, // This would come from course API
-          totalRevenue: 124567 // This would come from finance API
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    } finally {
-      setIsLoading(false);
+  try {
+    // Fetch user statistics from the API
+    const statsResult = await registrationApi.getUserStatistics();
+    
+    if (statsResult.success && statsResult.data) {
+      setStats({
+        totalStudents: statsResult.data.totalStudents || 0,
+        totalInstructors: statsResult.data.totalInstructors || 0,
+        totalCourses: statsResult.data.totalCourses || 45,
+        totalRevenue: statsResult.data.totalRevenue || 124567
+      });
+    } else {
+      // Fallback to individual API calls if statistics endpoint is not available
+      const studentsResult = await registrationApi.getAllStudents();
+      const instructorsResult = await registrationApi.getAllInstructers();
+      
+      setStats({
+        totalStudents: studentsResult.success ? studentsResult.data.length : 0,
+        totalInstructors: instructorsResult.success ? instructorsResult.data.length : 0,
+        totalCourses: 45,
+        totalRevenue: 124567
+      });
     }
-  };
-
+  } catch (error) {
+    console.error('Error fetching stats:', error);
+    // Set default values on error
+    setStats({
+      totalStudents: 0,
+      totalInstructors: 0,
+      totalCourses: 0,
+      totalRevenue: 0
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
   const getPageTitle = () => {
     const path = location.pathname.split('/').pop();
     switch (path) {

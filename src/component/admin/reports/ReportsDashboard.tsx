@@ -76,9 +76,10 @@ const ReportsDashboard: React.FC = () => {
         case 'semester':
           result = await financeApi.getSemesterReport(selectedSemester, selectedYear);
           break;
-        default:
-          result = await financeApi.getDailyReport(selectedDate);
-      }
+           default:
+        const defaultDate = `${selectedDate}T00:00:00`;
+        result = await financeApi.getDailyReport(defaultDate);
+    }
       
       if (result.success) {
         setFinancialReport(result.data);
