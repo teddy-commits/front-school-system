@@ -61,14 +61,14 @@ function AppContent() {
 />
         
         {/* Student Routes */}
-        <Route
-          path="/student-dashboard"
-          element={
-            <ProtectedRoute allowedUserTypes={['student']}>
-              <StudentDashboard />
-            </ProtectedRoute>
-          }
-        />
+       <Route
+  path="/student-dashboard/*"
+  element={
+    <ProtectedRoute allowedUserTypes={['student']}>
+      <StudentDashboard />
+    </ProtectedRoute>
+  }
+/>
         
         {/* Catch all - redirect to homepage */}
         <Route path="*" element={<Navigate to="/" replace />} />
