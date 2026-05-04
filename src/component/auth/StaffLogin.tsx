@@ -22,12 +22,16 @@ const StaffLogin: React.FC = () => {
       // Get user role from localStorage
       const userRole = localStorage.getItem('userRole');
       
-      // Redirect based on role
-      if (userRole === 'INSTRUCTOR' || userRole === 'PROFESSOR' || userRole === 'SENIOR_INSTRUCTOR') {
-        navigate('/instructor-dashboard/overview');
-      } else {
-        navigate('/dashboard');
-      }
+     const instructorRoles = ['INSTRUCTOR', 'PROFESSOR', 'SENIOR_INSTRUCTOR', 'ASSOCIATE_PROFESSOR', 'ASSISTANT_PROFESSOR'];
+const academicAdminRoles = ['ACADEMIC_ADMINISTRATOR', 'HOD', 'DEAN', 'REGISTRAR'];
+
+if (instructorRoles.includes(userRole || '')) {
+  navigate('/instructor-dashboard/overview');
+} else if (academicAdminRoles.includes(userRole || '')) {
+  navigate('/academic-admin-dashboard/overview');
+} else {
+  navigate('/dashboard');
+}
     }
     
     setIsLoading(false);

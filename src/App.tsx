@@ -10,6 +10,7 @@ import StudentDashboard from './component/student/StudentDashboard';
 import Homepage from './pages/Homepage';
 import AdminDashboard from './component/admin/AdminDashboard';
 import InstructorDashboard from './component/Instructor/InstructorDashboard';
+import AcademicAdminDashboard from './component/Academic Admin/AcademicAdminDashboard';
 const ProtectedRoute: React.FC<{ 
   children: React.ReactNode; 
   allowedUserTypes?: ('student' | 'staff')[];
@@ -77,7 +78,14 @@ function AppContent() {
     </ProtectedRoute>
   }
 />
-        
+       <Route
+  path="/academic-admin-dashboard/*"
+  element={
+    <ProtectedRoute allowedUserTypes={['staff']}>
+      <AcademicAdminDashboard />
+    </ProtectedRoute>
+  }
+/> 
         {/* Catch all - redirect to homepage */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
