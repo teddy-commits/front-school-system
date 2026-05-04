@@ -19,7 +19,15 @@ const StaffLogin: React.FC = () => {
     const success = await login(email, password, 'staff');
     
     if (success) {
-      navigate('/dashboard');
+      // Get user role from localStorage
+      const userRole = localStorage.getItem('userRole');
+      
+      // Redirect based on role
+      if (userRole === 'INSTRUCTOR' || userRole === 'PROFESSOR' || userRole === 'SENIOR_INSTRUCTOR') {
+        navigate('/instructor-dashboard/overview');
+      } else {
+        navigate('/dashboard');
+      }
     }
     
     setIsLoading(false);
@@ -28,7 +36,6 @@ const StaffLogin: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900">
       <div className="container mx-auto px-4 py-12">
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center p-3 bg-white/10 rounded-full mb-4">
             <Building2 className="w-8 h-8 text-white" />
@@ -39,7 +46,6 @@ const StaffLogin: React.FC = () => {
 
         <div className="max-w-md mx-auto">
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-            {/* Tabs */}
             <div className="flex border-b">
               <Link
                 to="/login/staff"
@@ -55,7 +61,6 @@ const StaffLogin: React.FC = () => {
               </Link>
             </div>
 
-            {/* Login Form */}
             <div className="p-8">
               <div className="mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">Welcome Back</h2>
@@ -151,6 +156,9 @@ const StaffLogin: React.FC = () => {
                 </p>
                 <p className="text-xs text-center text-gray-400 mt-1">
                   Admin: admin@university.com / admin123
+                </p>
+                <p className="text-xs text-center text-gray-400">
+                  Instructor: john.smith@university.com / John@123456
                 </p>
               </div>
             </div>

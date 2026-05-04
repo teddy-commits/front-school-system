@@ -6,10 +6,10 @@ import StaffLogin from './component/auth/StaffLogin';
 import StudentLogin from './component/auth/StudentLogin';
 import StudentRegistrationForm from './component/student/registration/StudentRegistrationForm';
 //import StaffDashboard from './component/dashboard/StaffDashboard';
-import StudentDashboard from './component/dashboard/StudentDashboard';
+import StudentDashboard from './component/student/StudentDashboard';
 import Homepage from './pages/Homepage';
 import AdminDashboard from './component/admin/AdminDashboard';
-// Protected Route component based on user type
+import InstructorDashboard from './component/Instructor/InstructorDashboard';
 const ProtectedRoute: React.FC<{ 
   children: React.ReactNode; 
   allowedUserTypes?: ('student' | 'staff')[];
@@ -66,6 +66,14 @@ function AppContent() {
   element={
     <ProtectedRoute allowedUserTypes={['student']}>
       <StudentDashboard />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/instructor-dashboard/*"
+  element={
+    <ProtectedRoute allowedUserTypes={['staff']}>
+      <InstructorDashboard />
     </ProtectedRoute>
   }
 />
