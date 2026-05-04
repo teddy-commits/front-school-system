@@ -24,11 +24,13 @@ const StaffLogin: React.FC = () => {
       
      const instructorRoles = ['INSTRUCTOR', 'PROFESSOR', 'SENIOR_INSTRUCTOR', 'ASSOCIATE_PROFESSOR', 'ASSISTANT_PROFESSOR'];
 const academicAdminRoles = ['ACADEMIC_ADMINISTRATOR', 'HOD', 'DEAN', 'REGISTRAR'];
-
+const managementRoles = ['MANAGEMENT', 'FINANCE_MANAGER', 'HR_MANAGER'];
 if (instructorRoles.includes(userRole || '')) {
   navigate('/instructor-dashboard/overview');
 } else if (academicAdminRoles.includes(userRole || '')) {
   navigate('/academic-admin-dashboard/overview');
+} else if (managementRoles.includes(userRole || '')) {
+  navigate('/management-dashboard/overview');
 } else {
   navigate('/dashboard');
 }

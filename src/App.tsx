@@ -5,12 +5,12 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import StaffLogin from './component/auth/StaffLogin';
 import StudentLogin from './component/auth/StudentLogin';
 import StudentRegistrationForm from './component/student/registration/StudentRegistrationForm';
-//import StaffDashboard from './component/dashboard/StaffDashboard';
 import StudentDashboard from './component/student/StudentDashboard';
 import Homepage from './pages/Homepage';
 import AdminDashboard from './component/admin/AdminDashboard';
 import InstructorDashboard from './component/Instructor/InstructorDashboard';
 import AcademicAdminDashboard from './component/Academic Admin/AcademicAdminDashboard';
+import ManagementDashboard from './component/Management/ManagementDashboard';
 const ProtectedRoute: React.FC<{ 
   children: React.ReactNode; 
   allowedUserTypes?: ('student' | 'staff')[];
@@ -86,6 +86,11 @@ function AppContent() {
     </ProtectedRoute>
   }
 /> 
+<Route path="/management-dashboard/*" element={
+  <ProtectedRoute allowedUserTypes={['staff']}>
+    <ManagementDashboard />
+  </ProtectedRoute>
+} />
         {/* Catch all - redirect to homepage */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
