@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { Building2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Building2, Mail, Lock, Eye, EyeOff, User, IdCard } from 'lucide-react';
 
 const StaffLogin: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [loginIdentifier, setLoginIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [loginMethod, setLoginMethod] = useState<'email' | 'id'>('email');
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -16,24 +17,26 @@ const StaffLogin: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    const success = await login(email, password, 'staff');
+    // Pass the identifier (email or ID) to login function
+    const success = await login(loginIdentifier, password, 'staff', loginMethod);
     
     if (success) {
       // Get user role from localStorage
       const userRole = localStorage.getItem('userRole');
       
-     const instructorRoles = ['INSTRUCTOR', 'PROFESSOR', 'SENIOR_INSTRUCTOR', 'ASSOCIATE_PROFESSOR', 'ASSISTANT_PROFESSOR'];
-const academicAdminRoles = ['ACADEMIC_ADMINISTRATOR', 'HOD', 'DEAN', 'REGISTRAR'];
-const managementRoles = ['MANAGEMENT', 'FINANCE_MANAGER', 'HR_MANAGER'];
-if (instructorRoles.includes(userRole || '')) {
-  navigate('/instructor-dashboard/overview');
-} else if (academicAdminRoles.includes(userRole || '')) {
-  navigate('/academic-admin-dashboard/overview');
-} else if (managementRoles.includes(userRole || '')) {
-  navigate('/management-dashboard/overview');
-} else {
-  navigate('/dashboard');
-}
+      const instructorRoles = ['INSTRUCTOR', 'PROFESSOR', 'SENIOR_INSTRUCTOR', 'ASSOCIATE_PROFESSOR', 'ASSISTANT_PROFESSOR'];
+      const academicAdminRoles = ['ACADEMIC_ADMINISTRATOR', 'HOD', 'DEAN', 'REGISTRAR'];
+      const managementRoles = ['MANAGEMENT', 'FINANCE_MANAGER', 'HR_MANAGER'];
+      
+      if (instructorRoles.includes(userRole || '')) {
+        navigate('/instructor-dashboard/overview');
+      } else if (academicAdminRoles.includes(userRole || '')) {
+        navigate('/academic-admin-dashboard/overview');
+      } else if (managementRoles.includes(userRole || '')) {
+        navigate('/management-dashboard/overview');
+      } else {
+        navigate('/dashboard');
+      }
     }
     
     setIsLoading(false);
@@ -75,21 +78,53 @@ if (instructorRoles.includes(userRole || '')) {
                 </p>
               </div>
 
+              {/* Login Method Toggle */}
+              <div className="mb-4 bg-gray-100 rounded-lg p-1 flex">
+                <button
+                  type="button"
+                  onClick={() => setLoginMethod('email')}
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                    loginMethod === 'email'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  <Mail className="w-4 h-4 inline mr-2" />
+                  Email
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLoginMethod('id')}
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                    loginMethod === 'id'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  <IdCard className="w-4 h-4 inline mr-2" />
+                  Staff ID
+                </button>
+              </div>
+
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address
+                    {loginMethod === 'email' ? 'Email Address' : 'Staff ID'}
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Mail className="h-5 w-5 text-gray-400" />
+                      {loginMethod === 'email' ? (
+                        <Mail className="h-5 w-5 text-gray-400" />
+                      ) : (
+                        <IdCard className="h-5 w-5 text-gray-400" />
+                      )}
                     </div>
                     <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      type={loginMethod === 'email' ? 'email' : 'text'}
+                      value={loginIdentifier}
+                      onChange={(e) => setLoginIdentifier(e.target.value)}
                       className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="admin@university.com"
+                      placeholder={loginMethod === 'email' ? 'admin@university.com' : 'STF-2024-001'}
                       required
                     />
                   </div>
@@ -161,10 +196,10 @@ if (instructorRoles.includes(userRole || '')) {
                   Default Staff Accounts:
                 </p>
                 <p className="text-xs text-center text-gray-400 mt-1">
-                  Admin: admin@university.com / admin123
+                  Email: admin@university.com | ID: STF-2024-001 | Password: admin123
                 </p>
                 <p className="text-xs text-center text-gray-400">
-                  Instructor: john.smith@university.com / John@123456
+                  Email: john.smith@university.com | ID: STF-2024-002 | Password: John@123456
                 </p>
               </div>
             </div>
