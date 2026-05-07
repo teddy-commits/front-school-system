@@ -6,6 +6,7 @@ import CourseManagement from './courses/CourseManagement';
 import EnrollmentManagement from './enrollments/EnrollmentManagement';
 import StudentManagement from './students/StudentManagement';
 import AcademicReports from './reports/AcademicReports';
+import RegistrationSessionManagement from './sessions/RegistrationSessionManagement';
 import { useAuth } from '../../context/AuthContext';
 import { courseApi } from '../../api/modules/courseApi';
 import { registrationApi } from '../../api/modules/registrationApi';
@@ -49,6 +50,7 @@ const AcademicAdminDashboard: React.FC = () => {
       case 'enrollments': return 'Enrollment Management';
       case 'students': return 'Student Management';
       case 'reports': return 'Academic Reports';
+      case 'sessions': return 'Registration Session Management';
       default: return 'Dashboard';
     }
   };
@@ -89,6 +91,7 @@ const AcademicAdminDashboard: React.FC = () => {
             <Route path="enrollments" element={<EnrollmentManagement />} />
             <Route path="students" element={<StudentManagement />} />
             <Route path="reports" element={<AcademicReports />} />
+            <Route path="sessions" element={<RegistrationSessionManagement />} />
           </Routes>
         </main>
       </div>
