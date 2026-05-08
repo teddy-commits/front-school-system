@@ -132,7 +132,24 @@ export const registrationApi = {
       return handleApiError(error);
     }
   },
+  createAcademicAdministrator: async (data) => {
+    try {
+      const response = await apiClient.post('/admin/users/academic-administrators', data);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
 
+  // Create management staff
+  createManagementStaff: async (data) => {
+    try {
+      const response = await apiClient.post('/admin/users/management', data);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
   // Get user statistics
   getUserStatistics: async () => {
     try {

@@ -187,10 +187,18 @@ const DepartmentManagement: React.FC = () => {
     });
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
+const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const { name, value } = e.target;
+  if (name === 'code') {
+    // Convert to uppercase and remove any non-letter characters
+    const upperValue = value.toUpperCase().replace(/[^A-Z]/g, '');
+    // Limit to 5 characters
+    const limitedValue = upperValue.slice(0, 5);
+    setFormData({ ...formData, [name]: limitedValue });
+  } else {
+    setFormData({ ...formData, [name]: value });
+  }
+};
   const getStatusBadge = (isActive: boolean) => {
     return isActive 
       ? 'bg-green-100 text-green-800' 
@@ -408,15 +416,16 @@ const DepartmentManagement: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Department Code *</label>
-                  <input
-                    type="text"
-                    name="code"
-                    required
-                    value={formData.code}
-                    onChange={handleChange}
-                    placeholder="e.g., CS"
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 uppercase"
-                  />
+               <input
+  type="text"
+  name="code"
+  required
+  value={formData.code}
+  onChange={handleChange}
+  placeholder="e.g., CS, ENG, TEDU"
+  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 uppercase"
+  maxLength={5}
+/>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Department Name *</label>

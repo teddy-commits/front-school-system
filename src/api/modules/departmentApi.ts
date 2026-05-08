@@ -4,7 +4,7 @@ export const departmentApi = {
   // Create department
   createDepartment: async (data: any) => {
     try {
-      const response = await apiClient.post('/api/v1/departments', data);
+      const response = await apiClient.post('/departments', data);
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);
@@ -14,7 +14,7 @@ export const departmentApi = {
   // Update department
   updateDepartment: async (id: number, data: any) => {
     try {
-      const response = await apiClient.put(`/api/v1/departments/${id}`, data);
+      const response = await apiClient.put(`/departments/${id}`, data);
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);
@@ -24,7 +24,7 @@ export const departmentApi = {
   // Get all departments
   getAllDepartments: async () => {
     try {
-      const response = await apiClient.get('/api/v1/departments');
+      const response = await apiClient.get('/departments');
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);
@@ -34,7 +34,7 @@ export const departmentApi = {
   // Get active departments
   getActiveDepartments: async () => {
     try {
-      const response = await apiClient.get('/api/v1/departments/active');
+      const response = await apiClient.get('/departments/active');
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);
@@ -44,7 +44,7 @@ export const departmentApi = {
   // Get department by ID
   getDepartmentById: async (id: number) => {
     try {
-      const response = await apiClient.get(`/api/v1/departments/${id}`);
+      const response = await apiClient.get(`/departments/${id}`);
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);
@@ -54,7 +54,7 @@ export const departmentApi = {
   // Get department by code
   getDepartmentByCode: async (code: string) => {
     try {
-      const response = await apiClient.get(`/api/v1/departments/code/${code}`);
+      const response = await apiClient.get(`/departments/code/${code}`);
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);
@@ -64,7 +64,7 @@ export const departmentApi = {
   // Get departments by faculty
   getDepartmentsByFaculty: async (faculty: string) => {
     try {
-      const response = await apiClient.get(`/api/v1/departments/faculty/${faculty}`);
+      const response = await apiClient.get(`/departments/faculty/${faculty}`);
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);
@@ -74,7 +74,7 @@ export const departmentApi = {
   // Search departments
   searchDepartments: async (keyword: string) => {
     try {
-      const response = await apiClient.get(`/api/v1/departments/search?keyword=${keyword}`);
+      const response = await apiClient.get(`/departments/search?keyword=${keyword}`);
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);
@@ -84,7 +84,7 @@ export const departmentApi = {
   // Delete department
   deleteDepartment: async (id: number) => {
     try {
-      const response = await apiClient.delete(`/api/v1/departments/${id}`);
+      const response = await apiClient.delete(`/departments/${id}`);
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);
@@ -94,7 +94,7 @@ export const departmentApi = {
   // Activate department
   activateDepartment: async (id: number) => {
     try {
-      const response = await apiClient.patch(`/api/v1/departments/${id}/activate`);
+      const response = await apiClient.patch(`/departments/${id}/activate`);
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);
@@ -104,7 +104,7 @@ export const departmentApi = {
   // Deactivate department
   deactivateDepartment: async (id: number) => {
     try {
-      const response = await apiClient.patch(`/api/v1/departments/${id}/deactivate`);
+      const response = await apiClient.patch(`/departments/${id}/deactivate`);
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);
