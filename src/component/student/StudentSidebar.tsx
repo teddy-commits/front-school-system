@@ -10,7 +10,8 @@ import {
   User, 
   LogOut,
   TrendingUp,
-  Calendar
+  Calendar,
+   Layers
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -26,6 +27,7 @@ const StudentSidebar: React.FC = () => {
   const menuItems = [
     { path: '/student-dashboard/overview', icon: LayoutDashboard, label: 'Overview', color: 'text-emerald-500' },
     { path: '/student-dashboard/courses', icon: BookOpen, label: 'My Courses', color: 'text-blue-500' },
+     { path: '/student-dashboard/section-registration', icon: Layers, label: 'Course Registration', color: 'text-indigo-500' }, 
     { path: '/student-dashboard/grades', icon: GraduationCap, label: 'My Grades', color: 'text-purple-500' },
     { path: '/student-dashboard/fees', icon: DollarSign, label: 'Fee Status', color: 'text-red-500' },
     { path: '/student-dashboard/payments', icon: CreditCard, label: 'Payment History', color: 'text-green-500' },

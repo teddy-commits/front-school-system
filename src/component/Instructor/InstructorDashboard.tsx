@@ -9,7 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import { courseApi } from '../../api/modules/courseApi';
 import { enrollmentApi } from '../../api/modules/enrollmentApi';
 import toast from 'react-hot-toast';
-
+import InstructorSections from './sections/InstructorSections';
 const InstructorDashboard: React.FC = () => {
   const { user, userEmail } = useAuth();
   const location = useLocation();
@@ -94,6 +94,8 @@ const InstructorDashboard: React.FC = () => {
             <Route path="courses" element={<InstructorCourses assignedCourses={assignedCourses} />} />
             <Route path="grades" element={<GradeManagement assignedCourses={assignedCourses} />} />
             <Route path="profile" element={<InstructorProfile />} />
+            <Route path="sections" element={<InstructorSections />} />
+            
           </Routes>
         </main>
       </div>

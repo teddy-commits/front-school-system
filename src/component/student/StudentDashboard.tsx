@@ -12,6 +12,7 @@ import { useAuth } from '../../context/AuthContext';
 import { gradeApi } from '../../api/modules/gradeApi';
 import { financeApi } from '../../api/modules/financeApi';
 import SemesterRegistration from './registration/SemesterRegistration';
+import StudentSectionEnrollment from './sections/StudentSectionEnrollment';
 
 const StudentDashboard: React.FC = () => {
   const { user, userId } = useAuth();
@@ -95,6 +96,7 @@ const StudentDashboard: React.FC = () => {
             <Route path="invoices" element={<StudentInvoices />} />
             <Route path="profile" element={<StudentProfile />} />
             <Route path="semester-registration" element={<SemesterRegistration />} />
+            <Route path="section-registration" element={<StudentSectionEnrollment />} />
           </Routes>
         </main>
       </div>

@@ -6,7 +6,8 @@ import {
   GraduationCap, 
   User, 
   LogOut,
-  TrendingUp
+  TrendingUp,
+  Layers
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -22,6 +23,7 @@ const InstructorSidebar: React.FC = () => {
   const menuItems = [
     { path: '/instructor-dashboard/overview', icon: LayoutDashboard, label: 'Overview', color: 'text-blue-500' },
     { path: '/instructor-dashboard/courses', icon: BookOpen, label: 'My Courses', color: 'text-green-500' },
+    { path: '/instructor-dashboard/sections', icon: Layers, label: 'My Sections', color: 'text-indigo-500' }, 
     { path: '/instructor-dashboard/grades', icon: GraduationCap, label: 'Grade Management', color: 'text-purple-500' },
     { path: '/instructor-dashboard/profile', icon: User, label: 'My Profile', color: 'text-gray-500' },
   ];
