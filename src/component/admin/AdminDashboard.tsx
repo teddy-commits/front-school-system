@@ -11,6 +11,7 @@ import ReportsDashboard from './reports/ReportsDashboard';
 import { useAuth } from '../../context/AuthContext';
 import { registrationApi } from '../../api/modules/registrationApi';
 import RegistrationSessionManagement from '../Academic Admin/sessions/RegistrationSessionManagement';
+import DepartmentManagement from './departments/DepartmentManagement';
 
 const AdminDashboard: React.FC = () => {
   const [stats, setStats] = useState({
@@ -219,6 +220,7 @@ const AdminDashboard: React.FC = () => {
             <Route path="invoices" element={<InvoiceManagement />} />
             <Route path="reports" element={<ReportsDashboard />} />
             <Route path="sessions" element={<RegistrationSessionManagement />} />
+            <Route path="departments" element={<DepartmentManagement />} />
           </Routes>
         </main>
       </div>

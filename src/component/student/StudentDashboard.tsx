@@ -11,7 +11,7 @@ import StudentProfile from './profile/StudentProfile';
 import { useAuth } from '../../context/AuthContext';
 import { gradeApi } from '../../api/modules/gradeApi';
 import { financeApi } from '../../api/modules/financeApi';
-import toast from 'react-hot-toast';
+import SemesterRegistration from './registration/SemesterRegistration';
 
 const StudentDashboard: React.FC = () => {
   const { user, userId } = useAuth();
@@ -94,6 +94,7 @@ const StudentDashboard: React.FC = () => {
             <Route path="payments" element={<StudentPayments />} />
             <Route path="invoices" element={<StudentInvoices />} />
             <Route path="profile" element={<StudentProfile />} />
+            <Route path="semester-registration" element={<SemesterRegistration />} />
           </Routes>
         </main>
       </div>

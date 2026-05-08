@@ -1,14 +1,42 @@
-import React, { useState } from 'react';
-import { BookOpen, Users, Calendar, MapPin, Clock, Eye, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { BookOpen, Users, Calendar, MapPin, Clock, Eye, RefreshCw } from 'lucide-react';
+import { courseApi } from '../../../api/modules/courseApi';
+import { useAuth } from '../../../context/AuthContext';
+import toast from 'react-hot-toast';
 import CourseEnrollmentModal from './CourseEnrollmentModal';
 
-interface InstructorCoursesProps {
-  assignedCourses: any[];
-}
-
-const InstructorCourses: React.FC<InstructorCoursesProps> = ({ assignedCourses }) => {
+const InstructorCourses: React.FC = () => {
+  const { userEmail } = useAuth();
+  const [courses, setCourses] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedCourse, setSelectedCourse] = useState<any>(null);
   const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
+  const [department, setDepartment] = useState<string>('');
+
+  useEffect(() => {
+    fetchMyCourses();
+  }, []);
+
+  const fetchMyCourses = async () => {
+    setIsLoading(true);
+    try {
+      const result = await courseApi.getMyCourses();
+      if (result.success) {
+        setCourses(result.data);
+        // Get department from first course if available
+        if (result.data.length > 0 && result.data[0].department) {
+          setDepartment(result.data[0].department);
+        }
+      } else {
+        toast.error(result.message || 'Failed to load courses');
+      }
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+      toast.error('Failed to load your courses');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
@@ -21,22 +49,53 @@ const InstructorCourses: React.FC<InstructorCoursesProps> = ({ assignedCourses }
     return styles[status] || 'bg-gray-100 text-gray-800';
   };
 
+  const getSeatStatus = (enrolled: number, max: number) => {
+    if (enrolled >= max) return 'Full';
+    if (enrolled >= max * 0.8) return 'Almost Full';
+    return 'Available';
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mb-6">
         <h2 className="text-xl font-semibold text-gray-800">My Courses</h2>
-        <p className="text-sm text-gray-500">View and manage all your assigned courses</p>
+        <p className="text-sm text-gray-500">
+          Courses assigned to you in the <span className="font-medium text-blue-600">{department || 'your'}</span> department
+        </p>
       </div>
 
-      {assignedCourses.length === 0 ? (
+      {/* Department Info Card */}
+      {department && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center">
+            <BookOpen className="w-5 h-5 text-blue-600 mr-2" />
+            <div>
+              <p className="text-sm font-medium text-blue-800">Your Department</p>
+              <p className="text-sm text-blue-600">{department}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {courses.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-12 text-center">
           <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500">No courses assigned to you yet.</p>
-          <p className="text-sm text-gray-400">Please contact the academic administrator.</p>
+          <p className="text-sm text-gray-400 mt-2">
+            Courses from your department will appear here once assigned.
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6">
-          {assignedCourses.map((course) => (
+          {courses.map((course) => (
             <div key={course.id} className="bg-white rounded-lg shadow overflow-hidden hover:shadow-md transition">
               <div className="p-4 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
                 <div className="flex justify-between items-start">
@@ -53,7 +112,10 @@ const InstructorCourses: React.FC<InstructorCoursesProps> = ({ assignedCourses }
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div className="flex items-center text-sm text-gray-600">
                     <Users className="w-4 h-4 mr-2 text-gray-400" />
-                    <span>Enrolled: {course.enrolledStudents} / {course.maxStudents} students</span>
+                    <span>
+                      Enrolled: {course.enrolledStudents} / {course.maxStudents} students
+                      <span className="ml-2 text-xs text-gray-400">({getSeatStatus(course.enrolledStudents, course.maxStudents)})</span>
+                    </span>
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
                     <Calendar className="w-4 h-4 mr-2 text-gray-400" />
@@ -79,7 +141,10 @@ const InstructorCourses: React.FC<InstructorCoursesProps> = ({ assignedCourses }
                     <Users className="w-4 h-4 mr-1" />
                     View Students
                   </button>
-                  <button className="flex items-center px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                  <button 
+                    onClick={() => window.location.href = `/instructor-dashboard/grades?course=${course.courseCode}`}
+                    className="flex items-center px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                  >
                     <Eye className="w-4 h-4 mr-1" />
                     Manage Grades
                   </button>
@@ -89,6 +154,17 @@ const InstructorCourses: React.FC<InstructorCoursesProps> = ({ assignedCourses }
           ))}
         </div>
       )}
+
+      {/* Refresh Button */}
+      <div className="mt-6 flex justify-center">
+        <button
+          onClick={fetchMyCourses}
+          className="flex items-center px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+        >
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Refresh Courses
+        </button>
+      </div>
 
       {/* Enrollment Modal */}
       {showEnrollmentModal && selectedCourse && (

@@ -101,10 +101,30 @@ export const courseApi = {
     }
   },
 
-  // Get courses by instructor
+  // Get courses by instructor (by email)
   getCoursesByInstructor: async (instructorEmail) => {
     try {
       const response = await apiClient.get(`/grading/courses/instructor/${instructorEmail}`);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  // Get courses for the logged-in instructor (based on their department)
+  getMyCourses: async () => {
+    try {
+      const response = await apiClient.get('/grading/courses/instructor/my-courses');
+      return { success: true, data: response.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  // Get available courses for the logged-in instructor (based on their department)
+  getAvailableCoursesForInstructor: async () => {
+    try {
+      const response = await apiClient.get('/grading/courses/instructor/available');
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);
@@ -121,3 +141,5 @@ export const courseApi = {
     }
   }
 };
+
+export default courseApi;

@@ -9,7 +9,8 @@ import {
   Receipt, 
   User, 
   LogOut,
-  TrendingUp
+  TrendingUp,
+  Calendar
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -30,6 +31,8 @@ const StudentSidebar: React.FC = () => {
     { path: '/student-dashboard/payments', icon: CreditCard, label: 'Payment History', color: 'text-green-500' },
     { path: '/student-dashboard/invoices', icon: Receipt, label: 'Invoices', color: 'text-orange-500' },
     { path: '/student-dashboard/profile', icon: User, label: 'My Profile', color: 'text-gray-500' },
+    // Add to menuItems
+{ path: '/student-dashboard/semester-registration', icon: Calendar, label: 'Semester Registration', color: 'text-teal-500' },
   ];
 
   return (

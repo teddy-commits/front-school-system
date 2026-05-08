@@ -12,7 +12,8 @@ import {
   Settings, 
   LogOut,
   Receipt,
-  Calendar
+  Calendar,
+  Building2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -36,6 +37,8 @@ const Sidebar: React.FC = () => {
     { path: '/dashboard/invoices', icon: Receipt, label: 'Invoice Management', color: 'text-orange-500' },
     { path: '/dashboard/reports', icon: BarChart3, label: 'Reports', color: 'text-pink-500' },
     { path: '/dashboard/settings', icon: Settings, label: 'Settings', color: 'text-gray-500' },
+    // Add to menuItems
+{ path: '/dashboard/departments', icon: Building2, label: 'Departments', color: 'text-teal-500' },
   ];
 
   return (
