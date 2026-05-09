@@ -10,6 +10,8 @@ import RegistrationSessionManagement from './sessions/RegistrationSessionManagem
 import { useAuth } from '../../context/AuthContext';
 import { courseApi } from '../../api/modules/courseApi';
 import { registrationApi } from '../../api/modules/registrationApi';
+import SectionManagement from '../Academic Admin/sections/SectionManagement';
+import AdminSectionEnrollment from './sections/AdminSectionEnrollment';
 import toast from 'react-hot-toast';
 
 const AcademicAdminDashboard: React.FC = () => {
@@ -89,9 +91,11 @@ const AcademicAdminDashboard: React.FC = () => {
             } />
             <Route path="courses" element={<CourseManagement />} />
             <Route path="enrollments" element={<EnrollmentManagement />} />
+            <Route path="section-enrollment" element={<AdminSectionEnrollment />} />
             <Route path="students" element={<StudentManagement />} />
             <Route path="reports" element={<AcademicReports />} />
             <Route path="sessions" element={<RegistrationSessionManagement />} />
+            <Route path="sections" element={<SectionManagement />} />
           </Routes>
         </main>
       </div>

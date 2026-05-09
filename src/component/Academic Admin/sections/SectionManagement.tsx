@@ -11,6 +11,7 @@ interface Section {
   courseCode: string;
   courseName: string;
   sectionCode: string;
+  academicYearLevel: number; // NEW - Year of study (1,2,3,4,5)
   semester: string;
   academicYear: number;
   instructorId: number;
@@ -34,11 +35,13 @@ const SectionManagement: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCourse, setSelectedCourse] = useState<string>('ALL');
+  const [selectedYearLevel, setSelectedYearLevel] = useState<string>('ALL');
   const [selectedSemester, setSelectedSemester] = useState<string>('ALL');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingSection, setEditingSection] = useState<Section | null>(null);
 
+  const yearLevels = ['ALL', '1', '2', '3', '4', '5'];
   const semesters = ['ALL', 'FALL', 'SPRING', 'SUMMER'];
 
   useEffect(() => {
@@ -47,7 +50,7 @@ const SectionManagement: React.FC = () => {
 
   useEffect(() => {
     filterSections();
-  }, [searchTerm, selectedCourse, selectedSemester, sections]);
+  }, [searchTerm, selectedCourse, selectedYearLevel, selectedSemester, sections]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -92,6 +95,10 @@ const SectionManagement: React.FC = () => {
     
     if (selectedCourse !== 'ALL') {
       filtered = filtered.filter(section => section.courseId.toString() === selectedCourse);
+    }
+    
+    if (selectedYearLevel !== 'ALL') {
+      filtered = filtered.filter(section => section.academicYearLevel.toString() === selectedYearLevel);
     }
     
     if (selectedSemester !== 'ALL') {
@@ -224,6 +231,15 @@ const SectionManagement: React.FC = () => {
             ))}
           </select>
           <select
+            value={selectedYearLevel}
+            onChange={(e) => setSelectedYearLevel(e.target.value)}
+            className="px-4 py-2 border rounded-lg w-40"
+          >
+            {yearLevels.map(level => (
+              <option key={level} value={level}>{level === 'ALL' ? 'All Years' : `Year ${level}`}</option>
+            ))}
+          </select>
+          <select
             value={selectedSemester}
             onChange={(e) => setSelectedSemester(e.target.value)}
             className="px-4 py-2 border rounded-lg w-40"
@@ -263,6 +279,7 @@ const SectionManagement: React.FC = () => {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Course</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Section</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Year Level</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Instructor</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Schedule</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Room</th>
@@ -284,6 +301,7 @@ const SectionManagement: React.FC = () => {
                         {section.sectionCode}
                       </span>
                     </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">Year {section.academicYearLevel}</td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900">{section.instructorName || 'Not Assigned'}</div>
                       <div className="text-xs text-gray-500">{section.instructorEmail}</div>
@@ -382,6 +400,7 @@ const CreateSectionModal: React.FC<{
   const [formData, setFormData] = useState({
     courseId: '',
     sectionCode: '',
+    academicYearLevel: '1', // NEW - Default to Year 1
     semester: 'FALL',
     academicYear: new Date().getFullYear(),
     instructorId: '',
@@ -390,6 +409,14 @@ const CreateSectionModal: React.FC<{
     room: '',
     status: 'OPEN'
   });
+
+  const academicYearLevels = [
+    { value: '1', label: 'Year 1' },
+    { value: '2', label: 'Year 2' },
+    { value: '3', label: 'Year 3' },
+    { value: '4', label: 'Year 4' },
+    { value: '5', label: 'Year 5' }
+  ];
 
   const semesters = ['FALL', 'SPRING', 'SUMMER'];
   const statuses = ['OPEN', 'CLOSED', 'FULL', 'CANCELLED'];
@@ -403,11 +430,12 @@ const CreateSectionModal: React.FC<{
       courseId: parseInt(formData.courseId),
       instructorId: formData.instructorId ? parseInt(formData.instructorId) : null,
       maxStudents: parseInt(formData.maxStudents.toString()),
-      academicYear: parseInt(formData.academicYear.toString())
+      academicYear: parseInt(formData.academicYear.toString()),
+      academicYearLevel: parseInt(formData.academicYearLevel)
     });
     
     if (result.success) {
-      toast.success('Section created successfully');
+      toast.success(`Section ${formData.sectionCode} created for Year ${formData.academicYearLevel}`);
       onSuccess();
       onClose();
     } else {
@@ -440,17 +468,33 @@ const CreateSectionModal: React.FC<{
               ))}
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Section Code *</label>
-            <input
-              type="text"
-              required
-              value={formData.sectionCode}
-              onChange={(e) => setFormData({...formData, sectionCode: e.target.value.toUpperCase()})}
-              placeholder="e.g., A, B, 01, 02"
-              className="w-full px-3 py-2 border rounded-lg"
-            />
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Section Code *</label>
+              <input
+                type="text"
+                required
+                value={formData.sectionCode}
+                onChange={(e) => setFormData({...formData, sectionCode: e.target.value.toUpperCase()})}
+                placeholder="e.g., A, B, 01, 02"
+                className="w-full px-3 py-2 border rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Academic Year Level *</label>
+              <select
+                value={formData.academicYearLevel}
+                onChange={(e) => setFormData({...formData, academicYearLevel: e.target.value})}
+                className="w-full px-3 py-2 border rounded-lg"
+              >
+                {academicYearLevels.map(level => (
+                  <option key={level.value} value={level.value}>{level.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Semester *</label>
@@ -472,6 +516,7 @@ const CreateSectionModal: React.FC<{
               />
             </div>
           </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Instructor</label>
             <select
@@ -485,6 +530,7 @@ const CreateSectionModal: React.FC<{
               ))}
             </select>
           </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Max Students</label>
@@ -508,6 +554,7 @@ const CreateSectionModal: React.FC<{
               </select>
             </div>
           </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Schedule</label>
@@ -530,8 +577,19 @@ const CreateSectionModal: React.FC<{
               />
             </div>
           </div>
+
+          {/* Example section info */}
+          <div className="bg-blue-50 rounded-lg p-3 text-sm text-blue-700">
+            <p className="font-medium">Section Information:</p>
+            <p className="text-xs mt-1">
+              Example: Year 3, Section 2 for CS101 means: Academic Year Level = 3, Section Code = 2
+            </p>
+          </div>
+
           <div className="flex justify-end space-x-3 pt-4">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+              Cancel
+            </button>
             <button type="submit" disabled={isLoading} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
               {isLoading ? 'Creating...' : 'Create Section'}
             </button>
@@ -554,6 +612,7 @@ const EditSectionModal: React.FC<{
   const [formData, setFormData] = useState({
     courseId: section.courseId.toString(),
     sectionCode: section.sectionCode,
+    academicYearLevel: section.academicYearLevel?.toString() || '1',
     semester: section.semester,
     academicYear: section.academicYear,
     instructorId: section.instructorId?.toString() || '',
@@ -562,6 +621,14 @@ const EditSectionModal: React.FC<{
     room: section.room || '',
     status: section.status
   });
+
+  const academicYearLevels = [
+    { value: '1', label: 'Year 1' },
+    { value: '2', label: 'Year 2' },
+    { value: '3', label: 'Year 3' },
+    { value: '4', label: 'Year 4' },
+    { value: '5', label: 'Year 5' }
+  ];
 
   const semesters = ['FALL', 'SPRING', 'SUMMER'];
   const statuses = ['OPEN', 'CLOSED', 'FULL', 'CANCELLED'];
@@ -575,7 +642,8 @@ const EditSectionModal: React.FC<{
       courseId: parseInt(formData.courseId),
       instructorId: formData.instructorId ? parseInt(formData.instructorId) : null,
       maxStudents: parseInt(formData.maxStudents.toString()),
-      academicYear: parseInt(formData.academicYear.toString())
+      academicYear: parseInt(formData.academicYear.toString()),
+      academicYearLevel: parseInt(formData.academicYearLevel)
     });
     
     if (result.success) {
@@ -616,16 +684,32 @@ const EditSectionModal: React.FC<{
               ))}
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Section Code *</label>
-            <input
-              type="text"
-              required
-              value={formData.sectionCode}
-              onChange={(e) => setFormData({...formData, sectionCode: e.target.value.toUpperCase()})}
-              className="w-full px-3 py-2 border rounded-lg"
-            />
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Section Code *</label>
+              <input
+                type="text"
+                required
+                value={formData.sectionCode}
+                onChange={(e) => setFormData({...formData, sectionCode: e.target.value.toUpperCase()})}
+                className="w-full px-3 py-2 border rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Academic Year Level *</label>
+              <select
+                value={formData.academicYearLevel}
+                onChange={(e) => setFormData({...formData, academicYearLevel: e.target.value})}
+                className="w-full px-3 py-2 border rounded-lg"
+              >
+                {academicYearLevels.map(level => (
+                  <option key={level.value} value={level.value}>{level.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Semester *</label>
@@ -647,6 +731,7 @@ const EditSectionModal: React.FC<{
               />
             </div>
           </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Instructor</label>
             <select
@@ -660,6 +745,7 @@ const EditSectionModal: React.FC<{
               ))}
             </select>
           </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Max Students</label>
@@ -683,6 +769,7 @@ const EditSectionModal: React.FC<{
               </select>
             </div>
           </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Schedule</label>
@@ -705,8 +792,11 @@ const EditSectionModal: React.FC<{
               />
             </div>
           </div>
+
           <div className="flex justify-end space-x-3 pt-4">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+              Cancel
+            </button>
             <button type="submit" disabled={isLoading} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
               {isLoading ? 'Saving...' : 'Save Changes'}
             </button>

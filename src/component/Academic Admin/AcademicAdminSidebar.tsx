@@ -7,7 +7,9 @@ import {
   GraduationCap, 
   BarChart3, 
   LogOut,
-  UserCheck
+  UserCheck,
+  Layers,
+  UserPlus
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -23,6 +25,8 @@ const AcademicAdminSidebar: React.FC = () => {
   const menuItems = [
     { path: '/academic-admin-dashboard/overview', icon: LayoutDashboard, label: 'Overview', color: 'text-indigo-500' },
     { path: '/academic-admin-dashboard/courses', icon: BookOpen, label: 'Course Management', color: 'text-blue-500' },
+     { path: '/dashboard/sections', icon: Layers, label: 'Section Management', color: 'text-indigo-500' }, 
+     { path: '/academic-admin-dashboard/section-enrollment', icon: UserPlus, label: 'Section Enrollment', color: 'text-purple-500' },
     { path: '/academic-admin-dashboard/enrollments', icon: Users, label: 'Enrollment Management', color: 'text-green-500' },
     { path: '/academic-admin-dashboard/students', icon: GraduationCap, label: 'Student Management', color: 'text-purple-500' },
     { path: '/academic-admin-dashboard/reports', icon: BarChart3, label: 'Academic Reports', color: 'text-orange-500' },

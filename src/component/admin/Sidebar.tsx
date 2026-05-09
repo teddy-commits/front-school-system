@@ -31,7 +31,6 @@ const Sidebar: React.FC = () => {
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', color: 'text-blue-500' },
     { path: '/dashboard/users', icon: Users, label: 'User Management', color: 'text-green-500' },
     { path: '/dashboard/courses', icon: BookOpen, label: 'Course Management', color: 'text-purple-500' },
-    { path: '/dashboard/sections', icon: Layers, label: 'Section Management', color: 'text-indigo-500' }, 
     { path: '/dashboard/grades', icon: GraduationCap, label: 'Grade Management', color: 'text-yellow-500' },
     { path: '/dashboard/sessions', icon: Calendar, label: 'Registration Periods', color: 'text-teal-500' },
     { path: '/dashboard/fees', icon: DollarSign, label: 'Fee Structure', color: 'text-red-500' },
