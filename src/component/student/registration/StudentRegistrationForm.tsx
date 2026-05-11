@@ -1,10 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { registrationApi } from '../../../api/modules/registrationApi';
 import { registrationSessionApi } from '../../../api/modules/registrationSessionApi';
+import { departmentApi } from '../../../api/modules/departmentApi';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../common/Header';
-import { Calendar, Clock, AlertCircle, XCircle, Info } from 'lucide-react';
+import { Calendar, Clock, AlertCircle, XCircle, Info, Building2 } from 'lucide-react';
+
+interface Department {
+  id: number;
+  code: string;
+  name: string;
+  faculty: string;
+  isActive: boolean;
+}
 
 const StudentRegistrationForm = () => {
   const navigate = useNavigate();
@@ -13,6 +22,8 @@ const StudentRegistrationForm = () => {
   const [sessionInfo, setSessionInfo] = useState<any>(null);
   const [nextSessionInfo, setNextSessionInfo] = useState<any>(null);
   const [checkingStatus, setCheckingStatus] = useState(true);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loadingDepartments, setLoadingDepartments] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -20,7 +31,7 @@ const StudentRegistrationForm = () => {
     password: '',
     phoneNumber: '',
     address: '',
-    department: '',
+    departmentId: '',
     faculty: '',
     enrollmentYear: new Date().getFullYear(),
     studentType: 'REGULAR',
@@ -29,9 +40,22 @@ const StudentRegistrationForm = () => {
     emergencyContact: '',
   });
 
+  // Fetch departments on component mount
   useEffect(() => {
+    fetchDepartments();
     checkRegistrationStatus();
   }, []);
+
+  const fetchDepartments = async () => {
+    setLoadingDepartments(true);
+    const result = await departmentApi.getActiveDepartments();
+    if (result.success) {
+      setDepartments(result.data);
+    } else {
+      console.error('Failed to fetch departments:', result.message);
+    }
+    setLoadingDepartments(false);
+  };
 
   const checkRegistrationStatus = async () => {
     setCheckingStatus(true);
@@ -52,12 +76,27 @@ const StudentRegistrationForm = () => {
     setCheckingStatus(false);
   };
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    if (name === 'departmentId') {
+      // Find selected department and auto-fill faculty
+      const selectedDept = departments.find(d => d.id.toString() === value);
+      if (selectedDept) {
+        setFormData(prev => ({ 
+          ...prev, 
+          departmentId: value,
+          faculty: selectedDept.faculty || ''
+        }));
+      } else {
+        setFormData(prev => ({ ...prev, departmentId: value, faculty: '' }));
+      }
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Double check if registration is still open before submitting
@@ -69,7 +108,15 @@ const StudentRegistrationForm = () => {
     }
     
     setIsLoading(true);
-    const result = await registrationApi.registerStudent(formData);
+    
+    // Prepare data with departmentId
+    const submitData = {
+      ...formData,
+      departmentId: parseInt(formData.departmentId),
+      enrollmentYear: parseInt(formData.enrollmentYear.toString())
+    };
+    
+    const result = await registrationApi.registerStudent(submitData);
 
     if (result.success) {
       toast.success(result.data?.message || 'Registration successful!');
@@ -80,9 +127,10 @@ const StudentRegistrationForm = () => {
         password: '',
         phoneNumber: '',
         address: '',
-        department: '',
+        departmentId: '',
         faculty: '',
         enrollmentYear: new Date().getFullYear(),
+        studentType: 'REGULAR',
         dateOfBirth: '',
         nationality: '',
         emergencyContact: '',
@@ -98,7 +146,7 @@ const StudentRegistrationForm = () => {
     setIsLoading(false);
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleString('en-US', {
       year: 'numeric',
@@ -142,7 +190,6 @@ const StudentRegistrationForm = () => {
                   Please check back during the next registration period.
                 </p>
                 
-                {/* Next Session Information */}
                 {nextSessionInfo && (
                   <div className="bg-blue-50 rounded-lg p-4 mb-6 text-left">
                     <div className="flex items-center mb-3">
@@ -218,9 +265,12 @@ const StudentRegistrationForm = () => {
           
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
             <div className="px-6 py-8 bg-gradient-to-r from-blue-600 to-indigo-600">
-              <h2 className="text-2xl font-bold text-white text-center">
-                Student Registration
-              </h2>
+              <div className="flex items-center justify-center mb-2">
+                <Building2 className="w-8 h-8 text-white mr-2" />
+                <h2 className="text-2xl font-bold text-white text-center">
+                  Student Registration
+                </h2>
+              </div>
               <p className="text-blue-100 text-center mt-2 text-sm">
                 Create your account to get started
               </p>
@@ -312,64 +362,63 @@ const StudentRegistrationForm = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Department *
                   </label>
-                  <select
-                    name="department"
-                    value={formData.department}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Select Department</option>
-                    <option value="Computer Science">Computer Science</option>
-                    <option value="Software Engineering">Software Engineering</option>
-                    <option value="Information Technology">Information Technology</option>
-                    <option value="Electrical Engineering">Electrical Engineering</option>
-                    <option value="Mechanical Engineering">Mechanical Engineering</option>
-                    <option value="Business Administration">Business Administration</option>
-                    <option value="Economics">Economics</option>
-                    <option value="Mathematics">Mathematics</option>
-                    <option value="Physics">Physics</option>
-                  </select>
+                  {loadingDepartments ? (
+                    <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                      <div className="animate-pulse h-5 bg-gray-200 rounded"></div>
+                    </div>
+                  ) : (
+                    <select
+                      name="departmentId"
+                      value={formData.departmentId}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Select Department</option>
+                      {departments.map(dept => (
+                        <option key={dept.id} value={dept.id}>
+                          {dept.code} - {dept.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
-                <div>
-  <label className="block text-sm font-medium text-gray-700 mb-1">
-    Student Type *
-  </label>
-  <select
-    name="studentType"
-    value={formData.studentType}
-    onChange={handleChange}
-    required
-    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-  >
-    <option value="REGULAR">Regular (Full-time Day)</option>
-    <option value="EXTENSION">Extension (Evening/Weekday)</option>
-    <option value="WEEKEND">Weekend Program</option>
-    <option value="DISTANCE">Distance Learning</option>
-  </select>
-</div>
+                
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Faculty *
+                    Student Type *
                   </label>
                   <select
-                    name="faculty"
-                    value={formData.faculty}
+                    name="studentType"
+                    value={formData.studentType}
                     onChange={handleChange}
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
-                    <option value="">Select Faculty</option>
-                    <option value="Faculty of Computing and Informatics">Faculty of Computing and Informatics</option>
-                    <option value="Faculty of Engineering">Faculty of Engineering</option>
-                    <option value="Faculty of Business and Economics">Faculty of Business and Economics</option>
-                    <option value="Faculty of Science">Faculty of Science</option>
-                    <option value="Faculty of Arts and Humanities">Faculty of Arts and Humanities</option>
+                    <option value="REGULAR">Regular (Full-time Day)</option>
+                    <option value="EXTENSION">Extension (Evening/Weekday)</option>
+                    <option value="WEEKEND">Weekend Program</option>
+                    <option value="DISTANCE">Distance Learning</option>
                   </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Faculty
+                  </label>
+                  <input
+                    type="text"
+                    name="faculty"
+                    value={formData.faculty}
+                    onChange={handleChange}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                    placeholder="Auto-filled from department"
+                  />
+                </div>
+                
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Enrollment Year *
@@ -385,7 +434,9 @@ const StudentRegistrationForm = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
-                
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Date of Birth
@@ -398,9 +449,7 @@ const StudentRegistrationForm = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Nationality
@@ -414,7 +463,9 @@ const StudentRegistrationForm = () => {
                     placeholder="e.g., Ethiopian"
                   />
                 </div>
-                
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Emergency Contact
