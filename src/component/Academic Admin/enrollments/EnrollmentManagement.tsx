@@ -89,12 +89,17 @@ const [selectedStudentId, setSelectedStudentId] = useState<string>('');
     setIsLoading(false);
   };
 
-  const fetchAvailableStudents = async () => {
+ const fetchAvailableStudents = async () => {
     const result = await registrationApi.getAllStudents();
     if (result.success) {
-      const enrolledIds = enrolledStudents.map(s => s.studentId);
+      // Get all students already enrolled in ANY section for this semester
+      const enrolledResult = await enrollmentApi.getInstructorStudents(selectedSemester, selectedYear);
+      const enrolledStudentIds = enrolledResult.success 
+        ? enrolledResult.data.map((e: any) => e.studentId) 
+        : [];
+      
       const available = result.data.filter(
-        (student: any) => !enrolledIds.includes(student.id) && student.isActive
+        (student: any) => !enrolledStudentIds.includes(student.id) && student.isActive
       );
       setAvailableStudents(available);
       setFilteredAvailableStudents(available);
@@ -129,27 +134,44 @@ const handleEnroll = async (studentId: number) => {
       return;
     }
     
+    if (!studentId) {
+      toast.error('Invalid student ID');
+      return;
+    }
+    
+    console.log('Enrolling:', {
+      studentId,
+      sectionId: selectedSection.id,
+      semester: selectedSemester,
+      year: selectedYear
+    });
+    
     setIsLoading(true);
     
-    // ✅ PASS AS SEPARATE ARGUMENTS, NOT AN OBJECT
-    const result = await enrollmentApi.enrollInSection(
-      studentId,              // 1st: number
-      selectedSection.id,     // 2nd: number
-      selectedSemester,       // 3rd: string ("FALL")
-      selectedYear            // 4th: number (2026)
-    );
-    
-    if (result.success) {
-      toast.success('Student enrolled in all section courses successfully');
-      fetchSectionStudents(selectedSection);
-      setShowStudentModal(false);
-      setSearchTerm('');
-    } else {
-      toast.error(result.message || 'Failed to enroll student');
+    try {
+      const result = await enrollmentApi.enrollInSection(
+        studentId,
+        selectedSection.id,
+        selectedSemester,
+        selectedYear
+      );
+      
+      if (result.success) {
+        toast.success('Student enrolled successfully');
+        await fetchSectionStudents(selectedSection);
+        setShowStudentModal(false);
+        setSelectedStudentId('');
+        setSearchTerm('');
+      } else {
+        toast.error(result.message || 'Failed to enroll student');
+      }
+    } catch (error) {
+      console.error('Enroll error:', error);
+      toast.error('Failed to enroll student');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
-
   const handleWithdraw = async (enrollmentId: number, studentName: string) => {
     if (window.confirm(`Withdraw ${studentName} from this section?`)) {
       const result = await enrollmentApi.dropSection(enrollmentId);
@@ -412,59 +434,87 @@ const handleEnroll = async (studentId: number) => {
         </>
       )}
 
-      {/* Add Student Modal */}
-      {showStudentModal && selectedSection && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-full max-w-md">
-            <div className="flex justify-between items-center p-6 border-b">
-              <div>
-                <h2 className="text-xl font-semibold">Enroll Student</h2>
-                <p className="text-sm text-gray-500">
-                  {selectedSection.courseCode} - Section {selectedSection.sectionCode}
-                </p>
-              </div>
-              <button onClick={() => setShowStudentModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-6">
-              <div className="mb-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search by name, ID, or email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border rounded-lg"
-                  />
-                </div>
-              </div>
-              <select
-  value={selectedStudentId}
-  onChange={(e) => {
-    setSelectedStudentId(e.target.value);
-    if (e.target.value) {
-      handleEnroll(parseInt(e.target.value));
-    }
-  }}
-  className="w-full px-3 py-2 border rounded-lg"
-  size={Math.min(filteredAvailableStudents.length + 1, 10)}
->
-  <option value="">-- Select a student --</option>
-  {filteredAvailableStudents.map(s => (
-    <option key={s.id} value={s.id}>
-      {s.fullName} ({s.studentId}) - Year {s.academicYearLevel || 1}
-    </option>
-  ))}
-</select>
-              {filteredAvailableStudents.length === 0 && (
-                <p className="text-center text-gray-500 mt-4">No available students to enroll</p>
-              )}
-            </div>
+   {/* Add Student Modal */}
+{showStudentModal && selectedSection && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="bg-white rounded-lg w-full max-w-md">
+      <div className="flex justify-between items-center p-6 border-b">
+        <div>
+          <h2 className="text-xl font-semibold">Enroll Student</h2>
+          <p className="text-sm text-gray-500">
+            {selectedSection.courseCode} - Section {selectedSection.sectionCode}
+          </p>
+        </div>
+        <button onClick={() => {
+          setShowStudentModal(false);
+          setSelectedStudentId('');
+          setSearchTerm('');
+        }} className="text-gray-400 hover:text-gray-600">
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+      <div className="p-6">
+        <div className="mb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by name, ID, or email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border rounded-lg"
+            />
           </div>
         </div>
-      )}
+        
+        {/* ✅ Use individual buttons instead of select */}
+        <div className="max-h-64 overflow-y-auto border rounded-lg divide-y">
+          {filteredAvailableStudents.length === 0 ? (
+            <p className="text-center text-gray-500 p-4">
+              {searchTerm 
+                ? 'No students match your search' 
+                : 'No available students to enroll'}
+            </p>
+          ) : (
+            filteredAvailableStudents.map((student) => (
+              <div 
+                key={student.id} 
+                className="flex items-center justify-between p-3 hover:bg-gray-50"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-900 truncate">
+                    {student.fullName}
+                  </p>
+                  <p className="text-sm text-gray-500 truncate">
+                    {student.studentId} | {student.email}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    Year {student.academicYearLevel || 'N/A'} | {student.department || 'N/A'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    console.log('Enrolling student:', {
+                      studentId: student.id,
+                      sectionId: selectedSection?.id,
+                      semester: selectedSemester,
+                      year: selectedYear
+                    });
+                    handleEnroll(student.id);
+                  }}
+                  disabled={isLoading}
+                  className="ml-3 px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  {isLoading ? '...' : 'Enroll'}
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 };

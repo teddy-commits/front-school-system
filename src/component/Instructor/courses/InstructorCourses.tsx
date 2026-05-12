@@ -38,6 +38,7 @@ const InstructorCourses: React.FC = () => {
           id: item.id,                    // Course ID
           courseCode: item.courseCode,
           courseName: item.courseName,
+          sectionId: item.sectionId,
           credits: item.credits,
           status: item.status || 'OPEN',
           schedule: item.schedule || 'Schedule TBA',
@@ -222,7 +223,8 @@ const InstructorCourses: React.FC = () => {
   <CourseEnrollmentModal
     course={selectedCourse}
     semester={selectedSemester} 
-    academicYear={selectedYear}     
+    academicYear={selectedYear}  
+     sectionId={selectedCourse.sectionId}    
     onClose={() => setShowEnrollmentModal(false)}
   />
 )}

@@ -48,13 +48,15 @@ export const enrollmentApi = {
       return handleApiError(error);
     }
   },
-
-  // ✅ GET ENROLLMENTS BY COURSE ID WITH SEMESTER/YEAR
-  getCourseEnrollments: async (courseId, semester, academicYear) => {
+getCourseEnrollments: async (courseId, semester, academicYear, sectionId) => {
     try {
-      // Build URL with query parameters manually to ensure they're sent
-      const url = `/grading/enrollments/course/${courseId}/students?semester=${encodeURIComponent(semester)}&academicYear=${academicYear}`;
-      console.log('Fetching enrollments from:', url); // Debug log
+      let url = `/grading/enrollments/course/${courseId}/students?semester=${encodeURIComponent(semester)}&academicYear=${academicYear}`;
+      
+      if (sectionId) {
+        url += `&sectionId=${sectionId}`;
+      }
+      
+      console.log('Fetching enrollments from:', url);
       const response = await apiClient.get(url);
       return { success: true, data: response.data };
     } catch (error) {

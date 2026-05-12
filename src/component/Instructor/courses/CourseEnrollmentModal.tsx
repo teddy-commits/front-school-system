@@ -5,15 +5,17 @@ import toast from 'react-hot-toast';
 
 interface CourseEnrollmentModalProps {
   course: any;
-  semester: string;      // ✅ Add semester prop
-  academicYear: number;  // ✅ Add academicYear prop
+  semester: string;
+  academicYear: number;
+  sectionId?: number;
   onClose: () => void;
 }
 
 const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({ 
   course, 
-  semester,        // ✅ Destructure semester
-  academicYear,    // ✅ Destructure academicYear
+  semester,
+  academicYear,
+  sectionId,
   onClose 
 }) => {
   const [enrollments, setEnrollments] = useState<any[]>([]);
@@ -21,16 +23,17 @@ const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
 
   useEffect(() => {
     fetchEnrollments();
-  }, [course.id, semester, academicYear]); // ✅ Add dependencies
+  }, [course.id, semester, academicYear, sectionId]); 
 
   const fetchEnrollments = async () => {
     setIsLoading(true);
     try {
-      // ✅ Now semester and academicYear are defined
+    
       const result = await enrollmentApi.getCourseEnrollments(
-        course.id,        // Number - course ID
-        semester,         // String - e.g., "FALL"
-        academicYear      // Number - e.g., 2026
+        course.id,     
+        semester,       
+        academicYear,
+        sectionId     
       );
       
       if (result.success) {

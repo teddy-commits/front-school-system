@@ -149,20 +149,25 @@ const AdminSectionEnrollment: React.FC = () => {
   const handleAddStudent = async (studentId: number) => {
     if (!selectedSection) return;
     
-    const result = await enrollmentApi.enrollInSection({
-      studentId: studentId,
-      sectionId: selectedSection.id
-    });
+    setIsLoading(true);
+    
+    // ✅ FIX: Pass individual arguments, NOT an object
+    const result = await enrollmentApi.enrollInSection(
+      studentId,              // 1st: number
+      selectedSection.id,     // 2nd: number
+      selectedSemester,       // 3rd: string - "FALL"
+      selectedYear            // 4th: number - 2026
+    );
     
     if (result.success) {
       toast.success('Student added to section successfully');
       fetchEnrolledStudents();
-      fetchAvailableStudents();
       setShowAddModal(false);
       setSearchTerm('');
     } else {
       toast.error(result.message);
     }
+    setIsLoading(false);
   };
 
   const handleRemoveStudent = async (enrollmentId: number, studentName: string) => {
