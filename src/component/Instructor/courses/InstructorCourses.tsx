@@ -13,17 +13,44 @@ const InstructorCourses: React.FC = () => {
   const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
   const [department, setDepartment] = useState<string>('');
 
+  // ✅ FIX: Hard-code FALL for testing, or use correct logic
+  const [selectedSemester, setSelectedSemester] = useState('FALL');
+  const [selectedYear, setSelectedYear] = useState(2026);
+
   useEffect(() => {
     fetchMyCourses();
-  }, []);
+  }, [selectedSemester, selectedYear]); // Re-fetch when semester/year changes
 
   const fetchMyCourses = async () => {
     setIsLoading(true);
     try {
-      const result = await courseApi.getMyCourses();
+      console.log('Fetching courses for:', selectedSemester, selectedYear);
+      
+      const result = await courseApi.getMyCourses(selectedSemester, selectedYear);
+      
+      console.log('API Response:', result);
+      
       if (result.success) {
-        setCourses(result.data);
-        // Get department from first course if available
+        console.log('Courses data:', result.data);
+        
+        // ✅ CORRECT MAPPING: SectionCourseDetailDTO fields
+        const transformedCourses = result.data.map((item: any) => ({
+          id: item.id,                    // Course ID
+          courseCode: item.courseCode,
+          courseName: item.courseName,
+          credits: item.credits,
+          status: item.status || 'OPEN',
+          schedule: item.schedule || 'Schedule TBA',
+          room: item.room || 'Room TBA',
+          semester: item.semester,
+          academicYear: item.academicYear,
+          enrolledStudents: item.enrolledStudents || 0,
+          maxStudents: item.maxStudents || 40,
+          department: item.department || department || 'N/A'
+        }));
+        
+        setCourses(transformedCourses);
+        
         if (result.data.length > 0 && result.data[0].department) {
           setDepartment(result.data[0].department);
         }
@@ -70,6 +97,30 @@ const InstructorCourses: React.FC = () => {
         <p className="text-sm text-gray-500">
           Courses assigned to you in the <span className="font-medium text-blue-600">{department || 'your'}</span> department
         </p>
+      </div>
+
+      {/* ✅ ADD: Semester/Year Selector */}
+      <div className="mb-6 flex items-center space-x-4">
+        <select 
+          value={selectedSemester}
+          onChange={(e) => setSelectedSemester(e.target.value)}
+          className="px-3 py-2 border rounded-lg"
+        >
+          <option value="FALL">Fall</option>
+          <option value="SPRING">Spring</option>
+          <option value="SUMMER">Summer</option>
+        </select>
+        
+        <select 
+          value={selectedYear}
+          onChange={(e) => setSelectedYear(Number(e.target.value))}
+          className="px-3 py-2 border rounded-lg"
+        >
+          <option value={2024}>2024</option>
+          <option value={2025}>2025</option>
+          <option value={2026}>2026</option>
+          <option value={2027}>2027</option>
+        </select>
       </div>
 
       {/* Department Info Card */}
@@ -167,12 +218,14 @@ const InstructorCourses: React.FC = () => {
       </div>
 
       {/* Enrollment Modal */}
-      {showEnrollmentModal && selectedCourse && (
-        <CourseEnrollmentModal
-          course={selectedCourse}
-          onClose={() => setShowEnrollmentModal(false)}
-        />
-      )}
+{showEnrollmentModal && selectedCourse && (
+  <CourseEnrollmentModal
+    course={selectedCourse}
+    semester={selectedSemester} 
+    academicYear={selectedYear}     
+    onClose={() => setShowEnrollmentModal(false)}
+  />
+)}
     </div>
   );
 };

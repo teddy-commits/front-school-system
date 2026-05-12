@@ -112,9 +112,14 @@ export const courseApi = {
   },
 
   // Get courses for the logged-in instructor (based on their department)
-  getMyCourses: async () => {
+ getMyCourses: async (semester, academicYear) => {
     try {
-      const response = await apiClient.get('/grading/courses/instructor/my-courses');
+      const response = await apiClient.get('/grading/sections/instructor/my-courses', {
+        params: {
+          semester: semester, 
+          academicYear: academicYear
+        }
+      });
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);

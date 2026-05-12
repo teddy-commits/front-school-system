@@ -254,7 +254,6 @@ const GradeManagement: React.FC = () => {
             />
           </div>
           <div className="w-64">
-           // Update the course select onChange handler
 <select
   value={selectedCourse}
   onChange={(e) => {

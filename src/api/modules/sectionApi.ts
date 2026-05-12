@@ -89,5 +89,86 @@ export const sectionApi = {
     } catch (error) {
       return handleApiError(error);
     }
-  }
+  },
+
+  // Get sections by semester
+  getSectionsBySemester: async (semester: string, academicYear: number) => {
+    try {
+      const response = await apiClient.get(`/grading/sections/semester?semester=${semester}&academicYear=${academicYear}`);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  // ========== Section Instructor Management ==========
+  
+  // Get section instructors
+  getSectionInstructors: async (sectionId: number) => {
+    try {
+      const response = await apiClient.get(`/grading/sections/${sectionId}/instructors`);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  // Add instructor to section
+  addInstructorToSection: async (data: { sectionId: number; instructorId: number; courseId?: number }) => {
+    try {
+      const response = await apiClient.post(`/grading/sections/${data.sectionId}/instructors`, {
+        instructorId: data.instructorId,
+        courseId: data.courseId
+      });
+      return { success: true, data: response.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  // Remove instructor from section
+  removeInstructorFromSection: async (sectionInstructorId: number) => {
+    try {
+      const response = await apiClient.delete(`/grading/sections/instructors/${sectionInstructorId}`);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  // ========== Section Course Management ==========
+  
+  // Get section courses
+  getSectionCourses: async (sectionId: number) => {
+    try {
+      const response = await apiClient.get(`/grading/sections/${sectionId}/courses`);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  // Add course to section
+  addCourseToSection: async (data: { sectionId: number; courseId: number; schedule?: string; room?: string }) => {
+    try {
+      const response = await apiClient.post(`/grading/sections/${data.sectionId}/courses`, {
+        courseId: data.courseId,
+        schedule: data.schedule,
+        room: data.room
+      });
+      return { success: true, data: response.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  // Remove course from section
+  removeCourseFromSection: async (sectionCourseId: number) => {
+    try {
+      const response = await apiClient.delete(`/grading/sections/courses/${sectionCourseId}`);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
 };

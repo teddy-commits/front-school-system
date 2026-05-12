@@ -1,45 +1,49 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Users, Calendar, Clock, MapPin, Eye, RefreshCw, X, ChevronDown } from 'lucide-react';
+import { Plus, Edit, Trash2, Users, Calendar, RefreshCw, X ,Eye} from 'lucide-react';
 import { sectionApi } from '../../../api/modules/sectionApi';
-import { courseApi } from '../../../api/modules/courseApi';
-import { registrationApi } from '../../../api/modules/registrationApi';
+import { departmentApi } from '../../../api/modules/departmentApi';
+import SectionDetailsModal from './SectionDetailsModal';
 import toast from 'react-hot-toast';
 
 interface Section {
   id: number;
-  courseId: number;
-  courseCode: string;
-  courseName: string;
+  departmentId: number;
+  departmentCode: string;
+  departmentName: string;
   sectionCode: string;
-  academicYearLevel: number; // NEW - Year of study (1,2,3,4,5)
+  academicYearLevel: number;
   semester: string;
   academicYear: number;
-  instructorId: number;
-  instructorName: string;
-  instructorEmail: string;
   maxStudents: number;
   enrolledStudents: number;
-  schedule: string;
-  room: string;
   status: string;
   hasAvailableSeats: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
+interface Department {
+  id: number;
+  code: string;
+  name: string;
+  faculty: string;
+  isActive: boolean;
+}
+
 const SectionManagement: React.FC = () => {
   const [sections, setSections] = useState<Section[]>([]);
   const [filteredSections, setFilteredSections] = useState<Section[]>([]);
-  const [courses, setCourses] = useState<any[]>([]);
-  const [instructors, setInstructors] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCourse, setSelectedCourse] = useState<string>('ALL');
+  const [selectedDepartment, setSelectedDepartment] = useState<string>('ALL');
   const [selectedYearLevel, setSelectedYearLevel] = useState<string>('ALL');
   const [selectedSemester, setSelectedSemester] = useState<string>('ALL');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingSection, setEditingSection] = useState<Section | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+const [selectedSectionForDetails, setSelectedSectionForDetails] = useState<Section | null>(null);
 
   const yearLevels = ['ALL', '1', '2', '3', '4', '5'];
   const semesters = ['ALL', 'FALL', 'SPRING', 'SUMMER'];
@@ -50,14 +54,13 @@ const SectionManagement: React.FC = () => {
 
   useEffect(() => {
     filterSections();
-  }, [searchTerm, selectedCourse, selectedYearLevel, selectedSemester, sections]);
+  }, [searchTerm, selectedDepartment, selectedYearLevel, selectedSemester, sections]);
 
   const fetchData = async () => {
     setIsLoading(true);
     await Promise.all([
       fetchAllSections(),
-      fetchCourses(),
-      fetchInstructors()
+      fetchDepartments()
     ]);
     setIsLoading(false);
   };
@@ -71,14 +74,11 @@ const SectionManagement: React.FC = () => {
     }
   };
 
-  const fetchCourses = async () => {
-    const result = await courseApi.getAllCourses();
-    if (result.success) setCourses(result.data);
-  };
-
-  const fetchInstructors = async () => {
-    const result = await registrationApi.getAllInstructors();
-    if (result.success) setInstructors(result.data);
+  const fetchDepartments = async () => {
+    const result = await departmentApi.getActiveDepartments();
+    if (result.success) {
+      setDepartments(result.data);
+    }
   };
 
   const filterSections = () => {
@@ -86,15 +86,14 @@ const SectionManagement: React.FC = () => {
     
     if (searchTerm) {
       filtered = filtered.filter(section =>
-        section.courseCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        section.courseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        section.sectionCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        section.instructorName?.toLowerCase().includes(searchTerm.toLowerCase())
+        section.departmentCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        section.departmentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        section.sectionCode.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     
-    if (selectedCourse !== 'ALL') {
-      filtered = filtered.filter(section => section.courseId.toString() === selectedCourse);
+    if (selectedDepartment !== 'ALL') {
+      filtered = filtered.filter(section => section.departmentId.toString() === selectedDepartment);
     }
     
     if (selectedYearLevel !== 'ALL') {
@@ -119,6 +118,10 @@ const SectionManagement: React.FC = () => {
       }
     }
   };
+const handleViewDetails = (section: Section) => {
+  setSelectedSectionForDetails(section);
+  setShowDetailsModal(true);
+};
 
   const handleUpdateStatus = async (id: number, newStatus: string) => {
     const result = await sectionApi.updateSectionStatus(id, newStatus);
@@ -151,12 +154,23 @@ const SectionManagement: React.FC = () => {
     return 'AVAILABLE';
   };
 
+  const getYearLevelBadge = (yearLevel: number) => {
+    const styles: Record<number, string> = {
+      1: 'bg-purple-100 text-purple-800',
+      2: 'bg-indigo-100 text-indigo-800',
+      3: 'bg-blue-100 text-blue-800',
+      4: 'bg-cyan-100 text-cyan-800',
+      5: 'bg-teal-100 text-teal-800'
+    };
+    return styles[yearLevel] || 'bg-gray-100 text-gray-800';
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-xl font-semibold text-gray-800">Section Management</h2>
-          <p className="text-sm text-gray-500">Manage course sections, schedules, and instructors</p>
+          <p className="text-sm text-gray-500">Manage course sections by department and year level</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
@@ -184,7 +198,7 @@ const SectionManagement: React.FC = () => {
               <p className="text-sm text-gray-500">Active Sections</p>
               <p className="text-2xl font-bold text-green-600">{sections.filter(s => s.status === 'OPEN').length}</p>
             </div>
-            <Calendar className="w-8 h-8 text-green-500" />
+            <Users className="w-8 h-8 text-green-500" />
           </div>
         </div>
         <div className="bg-white rounded-lg shadow p-4">
@@ -214,20 +228,20 @@ const SectionManagement: React.FC = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search by course code, section, or instructor..."
+              placeholder="Search by department or section code..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <select
-            value={selectedCourse}
-            onChange={(e) => setSelectedCourse(e.target.value)}
+            value={selectedDepartment}
+            onChange={(e) => setSelectedDepartment(e.target.value)}
             className="px-4 py-2 border rounded-lg w-64"
           >
-            <option value="ALL">All Courses</option>
-            {courses.map(c => (
-              <option key={c.id} value={c.id}>{c.courseCode} - {c.courseName}</option>
+            <option value="ALL">All Departments</option>
+            {departments.map(d => (
+              <option key={d.id} value={d.id}>{d.code} - {d.name}</option>
             ))}
           </select>
           <select
@@ -277,12 +291,9 @@ const SectionManagement: React.FC = () => {
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Course</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Department</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Section</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Year Level</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Instructor</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Schedule</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Room</th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Enrollment</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Semester</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
@@ -293,21 +304,19 @@ const SectionManagement: React.FC = () => {
                 {filteredSections.map((section) => (
                   <tr key={section.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">{section.courseCode}</div>
-                      <div className="text-xs text-gray-500">{section.courseName}</div>
+                      <div className="text-sm font-medium text-gray-900">{section.departmentCode}</div>
+                      <div className="text-xs text-gray-500">{section.departmentName}</div>
                     </td>
                     <td className="px-6 py-4">
                       <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                         {section.sectionCode}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">Year {section.academicYearLevel}</td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">{section.instructorName || 'Not Assigned'}</div>
-                      <div className="text-xs text-gray-500">{section.instructorEmail}</div>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getYearLevelBadge(section.academicYearLevel)}`}>
+                        Year {section.academicYearLevel}
+                      </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{section.schedule || 'TBA'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{section.room || 'TBA'}</td>
                     <td className="px-6 py-4">
                       <div className="text-center">
                         <div className="text-sm font-medium">{section.enrolledStudents}/{section.maxStudents}</div>
@@ -316,18 +325,16 @@ const SectionManagement: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">{section.semester} {section.academicYear}</td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center space-x-2">
-                        <select
-                          value={section.status}
-                          onChange={(e) => handleUpdateStatus(section.id, e.target.value)}
-                          className={`text-xs border rounded px-2 py-1 ${getStatusBadge(section.status)}`}
-                        >
-                          <option value="OPEN">OPEN</option>
-                          <option value="CLOSED">CLOSED</option>
-                          <option value="FULL">FULL</option>
-                          <option value="CANCELLED">CANCELLED</option>
-                        </select>
-                      </div>
+                      <select
+                        value={section.status}
+                        onChange={(e) => handleUpdateStatus(section.id, e.target.value)}
+                        className={`text-xs border rounded px-2 py-1 ${getStatusBadge(section.status)}`}
+                      >
+                        <option value="OPEN">OPEN</option>
+                        <option value="CLOSED">CLOSED</option>
+                        <option value="FULL">FULL</option>
+                        <option value="CANCELLED">CANCELLED</option>
+                      </select>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex justify-center space-x-2">
@@ -345,6 +352,13 @@ const SectionManagement: React.FC = () => {
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
+                        <button
+  onClick={() => handleViewDetails(section)}
+  className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+  title="View Details"
+>
+  <Eye className="w-4 h-4" />
+</button>
                       </div>
                     </td>
                   </tr>
@@ -358,8 +372,7 @@ const SectionManagement: React.FC = () => {
       {/* Create Section Modal */}
       {showCreateModal && (
         <CreateSectionModal
-          courses={courses}
-          instructors={instructors}
+          departments={departments}
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
             setShowCreateModal(false);
@@ -372,8 +385,7 @@ const SectionManagement: React.FC = () => {
       {showEditModal && editingSection && (
         <EditSectionModal
           section={editingSection}
-          courses={courses}
-          instructors={instructors}
+          departments={departments}
           onClose={() => {
             setShowEditModal(false);
             setEditingSection(null);
@@ -385,28 +397,36 @@ const SectionManagement: React.FC = () => {
           }}
         />
       )}
+       {showDetailsModal && selectedSectionForDetails && (
+      <SectionDetailsModal
+        section={selectedSectionForDetails}
+        onClose={() => {
+          setShowDetailsModal(false);
+          setSelectedSectionForDetails(null);
+        }}
+        onUpdate={() => {
+          fetchAllSections();
+        }}
+      />
+    )}
     </div>
   );
 };
 
-// Create Section Modal
+// Create Section Modal (Simplified)
 const CreateSectionModal: React.FC<{
-  courses: any[];
-  instructors: any[];
+  departments: Department[];
   onClose: () => void;
   onSuccess: () => void;
-}> = ({ courses, instructors, onClose, onSuccess }) => {
+}> = ({ departments, onClose, onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    courseId: '',
+    departmentId: '',
     sectionCode: '',
-    academicYearLevel: '1', // NEW - Default to Year 1
+    academicYearLevel: '1',
     semester: 'FALL',
     academicYear: new Date().getFullYear(),
-    instructorId: '',
     maxStudents: 40,
-    schedule: '',
-    room: '',
     status: 'OPEN'
   });
 
@@ -427,15 +447,14 @@ const CreateSectionModal: React.FC<{
     
     const result = await sectionApi.createSection({
       ...formData,
-      courseId: parseInt(formData.courseId),
-      instructorId: formData.instructorId ? parseInt(formData.instructorId) : null,
+      departmentId: parseInt(formData.departmentId),
       maxStudents: parseInt(formData.maxStudents.toString()),
       academicYear: parseInt(formData.academicYear.toString()),
       academicYearLevel: parseInt(formData.academicYearLevel)
     });
     
     if (result.success) {
-      toast.success(`Section ${formData.sectionCode} created for Year ${formData.academicYearLevel}`);
+      toast.success(`Section ${formData.sectionCode} created successfully`);
       onSuccess();
       onClose();
     } else {
@@ -448,23 +467,23 @@ const CreateSectionModal: React.FC<{
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-white">
-          <h2 className="text-xl font-semibold">Create Course Section</h2>
+          <h2 className="text-xl font-semibold">Create Section</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Course *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Department *</label>
             <select
               required
-              value={formData.courseId}
-              onChange={(e) => setFormData({...formData, courseId: e.target.value})}
+              value={formData.departmentId}
+              onChange={(e) => setFormData({...formData, departmentId: e.target.value})}
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
             >
-              <option value="">Select Course</option>
-              {courses.map(c => (
-                <option key={c.id} value={c.id}>{c.courseCode} - {c.courseName}</option>
+              <option value="">Select Department</option>
+              {departments.map(d => (
+                <option key={d.id} value={d.id}>{d.code} - {d.name}</option>
               ))}
             </select>
           </div>
@@ -482,7 +501,7 @@ const CreateSectionModal: React.FC<{
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Academic Year Level *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Year Level *</label>
               <select
                 value={formData.academicYearLevel}
                 onChange={(e) => setFormData({...formData, academicYearLevel: e.target.value})}
@@ -517,20 +536,6 @@ const CreateSectionModal: React.FC<{
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Instructor</label>
-            <select
-              value={formData.instructorId}
-              onChange={(e) => setFormData({...formData, instructorId: e.target.value})}
-              className="w-full px-3 py-2 border rounded-lg"
-            >
-              <option value="">Select Instructor</option>
-              {instructors.map(i => (
-                <option key={i.id} value={i.id}>{i.fullName} ({i.email})</option>
-              ))}
-            </select>
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Max Students</label>
@@ -555,42 +560,16 @@ const CreateSectionModal: React.FC<{
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Schedule</label>
-              <input
-                type="text"
-                value={formData.schedule}
-                onChange={(e) => setFormData({...formData, schedule: e.target.value})}
-                placeholder="e.g., Monday 10:00-12:00"
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Room</label>
-              <input
-                type="text"
-                value={formData.room}
-                onChange={(e) => setFormData({...formData, room: e.target.value})}
-                placeholder="e.g., Room 101"
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-            </div>
-          </div>
-
-          {/* Example section info */}
           <div className="bg-blue-50 rounded-lg p-3 text-sm text-blue-700">
-            <p className="font-medium">Section Information:</p>
+            <p className="font-medium">Note:</p>
             <p className="text-xs mt-1">
-              Example: Year 3, Section 2 for CS101 means: Academic Year Level = 3, Section Code = 2
+              After creating the section, you can add courses and assign instructors to this section.
             </p>
           </div>
 
           <div className="flex justify-end space-x-3 pt-4">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
-              Cancel
-            </button>
-            <button type="submit" disabled={isLoading} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
+            <button type="submit" disabled={isLoading} className="px-4 py-2 bg-indigo-600 text-white rounded-lg">
               {isLoading ? 'Creating...' : 'Create Section'}
             </button>
           </div>
@@ -603,22 +582,18 @@ const CreateSectionModal: React.FC<{
 // Edit Section Modal
 const EditSectionModal: React.FC<{
   section: Section;
-  courses: any[];
-  instructors: any[];
+  departments: Department[];
   onClose: () => void;
   onSuccess: () => void;
-}> = ({ section, courses, instructors, onClose, onSuccess }) => {
+}> = ({ section, departments, onClose, onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    courseId: section.courseId.toString(),
+    departmentId: section.departmentId.toString(),
     sectionCode: section.sectionCode,
-    academicYearLevel: section.academicYearLevel?.toString() || '1',
+    academicYearLevel: section.academicYearLevel.toString(),
     semester: section.semester,
     academicYear: section.academicYear,
-    instructorId: section.instructorId?.toString() || '',
     maxStudents: section.maxStudents,
-    schedule: section.schedule || '',
-    room: section.room || '',
     status: section.status
   });
 
@@ -639,8 +614,7 @@ const EditSectionModal: React.FC<{
     
     const result = await sectionApi.updateSection(section.id, {
       ...formData,
-      courseId: parseInt(formData.courseId),
-      instructorId: formData.instructorId ? parseInt(formData.instructorId) : null,
+      departmentId: parseInt(formData.departmentId),
       maxStudents: parseInt(formData.maxStudents.toString()),
       academicYear: parseInt(formData.academicYear.toString()),
       academicYearLevel: parseInt(formData.academicYearLevel)
@@ -658,11 +632,11 @@ const EditSectionModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-white">
+      <div className="bg-white rounded-lg w-full max-w-lg">
+        <div className="flex justify-between items-center p-6 border-b">
           <div>
             <h2 className="text-xl font-semibold">Edit Section</h2>
-            <p className="text-sm text-gray-500">{section.courseCode} - Section {section.sectionCode}</p>
+            <p className="text-sm text-gray-500">Section {section.sectionCode}</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
@@ -670,34 +644,31 @@ const EditSectionModal: React.FC<{
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Course *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Department *</label>
             <select
-              required
-              value={formData.courseId}
-              onChange={(e) => setFormData({...formData, courseId: e.target.value})}
+              value={formData.departmentId}
+              onChange={(e) => setFormData({...formData, departmentId: e.target.value})}
               className="w-full px-3 py-2 border rounded-lg"
-              disabled
             >
-              <option value="">Select Course</option>
-              {courses.map(c => (
-                <option key={c.id} value={c.id}>{c.courseCode} - {c.courseName}</option>
+              {departments.map(d => (
+                <option key={d.id} value={d.id}>{d.code} - {d.name}</option>
               ))}
             </select>
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Section Code *</label>
+            <input
+              type="text"
+              value={formData.sectionCode}
+              onChange={(e) => setFormData({...formData, sectionCode: e.target.value.toUpperCase()})}
+              className="w-full px-3 py-2 border rounded-lg"
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Section Code *</label>
-              <input
-                type="text"
-                required
-                value={formData.sectionCode}
-                onChange={(e) => setFormData({...formData, sectionCode: e.target.value.toUpperCase()})}
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Academic Year Level *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Year Level</label>
               <select
                 value={formData.academicYearLevel}
                 onChange={(e) => setFormData({...formData, academicYearLevel: e.target.value})}
@@ -708,11 +679,8 @@ const EditSectionModal: React.FC<{
                 ))}
               </select>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Semester *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Semester</label>
               <select
                 value={formData.semester}
                 onChange={(e) => setFormData({...formData, semester: e.target.value})}
@@ -721,8 +689,11 @@ const EditSectionModal: React.FC<{
                 {semesters.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Academic Year *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Academic Year</label>
               <input
                 type="number"
                 value={formData.academicYear}
@@ -730,78 +701,38 @@ const EditSectionModal: React.FC<{
                 className="w-full px-3 py-2 border rounded-lg"
               />
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Instructor</label>
-            <select
-              value={formData.instructorId}
-              onChange={(e) => setFormData({...formData, instructorId: e.target.value})}
-              className="w-full px-3 py-2 border rounded-lg"
-            >
-              <option value="">Select Instructor</option>
-              {instructors.map(i => (
-                <option key={i.id} value={i.id}>{i.fullName} ({i.email})</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Max Students</label>
               <input
                 type="number"
-                min={5}
-                max={200}
                 value={formData.maxStudents}
                 onChange={(e) => setFormData({...formData, maxStudents: parseInt(e.target.value)})}
                 className="w-full px-3 py-2 border rounded-lg"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({...formData, status: e.target.value})}
-                className="w-full px-3 py-2 border rounded-lg"
-              >
-                {statuses.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Schedule</label>
-              <input
-                type="text"
-                value={formData.schedule}
-                onChange={(e) => setFormData({...formData, schedule: e.target.value})}
-                placeholder="e.g., Monday 10:00-12:00"
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Room</label>
-              <input
-                type="text"
-                value={formData.room}
-                onChange={(e) => setFormData({...formData, room: e.target.value})}
-                placeholder="e.g., Room 101"
-                className="w-full px-3 py-2 border rounded-lg"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select
+              value={formData.status}
+              onChange={(e) => setFormData({...formData, status: e.target.value})}
+              className="w-full px-3 py-2 border rounded-lg"
+            >
+              {statuses.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
           </div>
+          
 
           <div className="flex justify-end space-x-3 pt-4">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
-              Cancel
-            </button>
-            <button type="submit" disabled={isLoading} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
+            <button type="submit" disabled={isLoading} className="px-4 py-2 bg-indigo-600 text-white rounded-lg">
               {isLoading ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
+          
         </form>
+        
       </div>
     </div>
   );
@@ -812,6 +743,8 @@ const Search: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
   </svg>
+  
 );
+
 
 export default SectionManagement;

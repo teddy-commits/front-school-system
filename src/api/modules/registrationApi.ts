@@ -14,7 +14,7 @@ export const registrationApi = {
   // Get all students (Requires authentication - Admin only)
   getAllStudents: async () => {
     try {
-      const response = await apiClient.get('/registration/students');
+      const response = await apiClient.get('/registration/students/');
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);
