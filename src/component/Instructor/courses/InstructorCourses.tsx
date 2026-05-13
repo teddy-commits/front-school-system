@@ -5,37 +5,82 @@ import { useAuth } from '../../../context/AuthContext';
 import toast from 'react-hot-toast';
 import CourseEnrollmentModal from './CourseEnrollmentModal';
 
+interface Course {
+  id: number;
+  courseCode: string;
+  courseName: string;
+  sectionId: number;
+  credits: number;
+  status: string;
+  schedule: string;
+  room: string;
+  semester: string;
+  academicYear: number;
+  enrolledStudents: number;
+  maxStudents: number;
+  department: string;
+}
+
+interface ApiCourseResponse {
+  id: number;
+  courseCode: string;
+  courseName: string;
+  sectionId: number;
+  credits: number;
+  status?: string;
+  schedule?: string;
+  room?: string;
+  semester: string;
+  academicYear: number;
+  enrolledStudents?: number;
+  maxStudents?: number;
+  department?: string;
+}
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const InstructorCourses: React.FC = () => {
-  const { userEmail } = useAuth();
-  const [courses, setCourses] = useState<any[]>([]);
+  const { user } = useAuth(); // Changed from userEmail to user
+  const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedCourse, setSelectedCourse] = useState<any>(null);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
   const [department, setDepartment] = useState<string>('');
 
-  // ✅ FIX: Hard-code FALL for testing, or use correct logic
   const [selectedSemester, setSelectedSemester] = useState('FALL');
   const [selectedYear, setSelectedYear] = useState(2026);
 
   useEffect(() => {
     fetchMyCourses();
-  }, [selectedSemester, selectedYear]); // Re-fetch when semester/year changes
+  }, [selectedSemester, selectedYear]);
 
   const fetchMyCourses = async () => {
     setIsLoading(true);
     try {
       console.log('Fetching courses for:', selectedSemester, selectedYear);
       
-      const result = await courseApi.getMyCourses(selectedSemester, selectedYear);
+      const result = await courseApi.getMyCourses(selectedSemester, selectedYear) as ApiResponse<ApiCourseResponse[]>;
       
       console.log('API Response:', result);
       
-      if (result.success) {
+      if (result.success && 'data' in result && Array.isArray(result.data)) {
         console.log('Courses data:', result.data);
         
-        // ✅ CORRECT MAPPING: SectionCourseDetailDTO fields
-        const transformedCourses = result.data.map((item: any) => ({
-          id: item.id,                    // Course ID
+        const transformedCourses: Course[] = result.data.map((item: ApiCourseResponse) => ({
+          id: item.id,
           courseCode: item.courseCode,
           courseName: item.courseName,
           sectionId: item.sectionId,
@@ -55,8 +100,10 @@ const InstructorCourses: React.FC = () => {
         if (result.data.length > 0 && result.data[0].department) {
           setDepartment(result.data[0].department);
         }
-      } else {
+      } else if (!result.success && 'message' in result) {
         toast.error(result.message || 'Failed to load courses');
+      } else {
+        toast.error('Failed to load courses');
       }
     } catch (error) {
       console.error('Error fetching courses:', error);
@@ -100,12 +147,12 @@ const InstructorCourses: React.FC = () => {
         </p>
       </div>
 
-      {/* ✅ ADD: Semester/Year Selector */}
+      {/* Semester/Year Selector */}
       <div className="mb-6 flex items-center space-x-4">
         <select 
           value={selectedSemester}
           onChange={(e) => setSelectedSemester(e.target.value)}
-          className="px-3 py-2 border rounded-lg"
+          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
         >
           <option value="FALL">Fall</option>
           <option value="SPRING">Spring</option>
@@ -115,7 +162,7 @@ const InstructorCourses: React.FC = () => {
         <select 
           value={selectedYear}
           onChange={(e) => setSelectedYear(Number(e.target.value))}
-          className="px-3 py-2 border rounded-lg"
+          className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
         >
           <option value={2024}>2024</option>
           <option value={2025}>2025</option>
@@ -219,15 +266,15 @@ const InstructorCourses: React.FC = () => {
       </div>
 
       {/* Enrollment Modal */}
-{showEnrollmentModal && selectedCourse && (
-  <CourseEnrollmentModal
-    course={selectedCourse}
-    semester={selectedSemester} 
-    academicYear={selectedYear}  
-     sectionId={selectedCourse.sectionId}    
-    onClose={() => setShowEnrollmentModal(false)}
-  />
-)}
+      {showEnrollmentModal && selectedCourse && (
+        <CourseEnrollmentModal
+          course={selectedCourse}
+          semester={selectedSemester} 
+          academicYear={selectedYear}  
+          sectionId={selectedCourse.sectionId}    
+          onClose={() => setShowEnrollmentModal(false)}
+        />
+      )}
     </div>
   );
 };

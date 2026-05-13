@@ -3,16 +3,74 @@ import { X } from 'lucide-react';
 import { courseApi } from '../../../api/modules/courseApi';
 import toast from 'react-hot-toast';
 
+interface Course {
+  id: number;
+  courseCode: string;
+  courseName: string;
+  description: string;
+  credits: number;
+  department: string;
+  faculty: string;
+  semester: string;
+  academicYear: number;
+  status: string;
+  instructorEmail: string;
+  maxStudents: number;
+  prerequisites: string;
+  syllabus?: string;  // Made optional
+  room: string;
+  schedule: string;
+}
+
+interface Instructor {
+  id: number;
+  fullName: string;
+  email: string;
+  department?: string;
+}
+
 interface EditCourseModalProps {
-  course: any;
+  course: Course;
   onClose: () => void;
   onSuccess: () => void;
-  instructors: any[];
+  instructors: Instructor[];
 }
+
+interface FormData {
+  courseName: string;
+  description: string;
+  credits: number;
+  department: string;
+  faculty: string;
+  semester: string;
+  academicYear: number;
+  instructorEmail: string;
+  maxStudents: number;
+  prerequisites: string;
+  syllabus: string;
+  room: string;
+  schedule: string;
+  status: string;
+}
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
 
 const EditCourseModal: React.FC<EditCourseModalProps> = ({ course, onClose, onSuccess, instructors }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     courseName: course.courseName,
     description: course.description || '',
     credits: course.credits,
@@ -23,7 +81,7 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({ course, onClose, onSu
     instructorEmail: course.instructorEmail || '',
     maxStudents: course.maxStudents,
     prerequisites: course.prerequisites || '',
-    syllabus: course.syllabus || '',
+    syllabus: course.syllabus || '',  // Safe because we handle undefined with ||
     room: course.room || '',
     schedule: course.schedule || '',
     status: course.status
@@ -47,21 +105,35 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({ course, onClose, onSu
   const statuses = ['DRAFT', 'OPEN', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.courseName.trim()) {
+      toast.error('Please enter a course name');
+      return;
+    }
+    
+    if (formData.credits <= 0) {
+      toast.error('Please enter a valid number of credits');
+      return;
+    }
+    
     setIsLoading(true);
 
-    const result = await courseApi.updateCourse(course.id, formData);
+    const result = await courseApi.updateCourse(course.id, formData) as ApiResponse;
 
     if (result.success) {
       toast.success(`Course ${course.courseCode} updated successfully!`);
       onSuccess();
       onClose();
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to update course');
     }
 
     setIsLoading(false);
@@ -75,7 +147,7 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({ course, onClose, onSu
             <h2 className="text-xl font-semibold">Edit Course</h2>
             <p className="text-sm text-gray-500 font-mono">{course.courseCode}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -127,7 +199,7 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({ course, onClose, onSu
                 max={6}
                 value={formData.credits}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -136,7 +208,7 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({ course, onClose, onSu
                 name="semester"
                 value={formData.semester}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
                 {semesters.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
@@ -148,7 +220,7 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({ course, onClose, onSu
                 name="academicYear"
                 value={formData.academicYear}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -160,7 +232,7 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({ course, onClose, onSu
                 name="department"
                 value={formData.department}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Select Department</option>
                 {departments.map(d => <option key={d} value={d}>{d}</option>)}
@@ -172,7 +244,7 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({ course, onClose, onSu
                 name="faculty"
                 value={formData.faculty}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Select Faculty</option>
                 {faculties.map(f => <option key={f} value={f}>{f}</option>)}
@@ -187,7 +259,7 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({ course, onClose, onSu
                 name="instructorEmail"
                 value={formData.instructorEmail}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Select Instructor</option>
                 {instructors.map(inst => (
@@ -206,7 +278,7 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({ course, onClose, onSu
                 max={200}
                 value={formData.maxStudents}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -219,7 +291,7 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({ course, onClose, onSu
                 name="room"
                 value={formData.room}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -229,7 +301,7 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({ course, onClose, onSu
                 name="schedule"
                 value={formData.schedule}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -241,7 +313,18 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({ course, onClose, onSu
               name="prerequisites"
               value={formData.prerequisites}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Syllabus URL</label>
+            <input
+              type="text"
+              name="syllabus"
+              value={formData.syllabus}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
@@ -256,7 +339,7 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({ course, onClose, onSu
             <button
               type="submit"
               disabled={isLoading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Saving...' : 'Save Changes'}
             </button>

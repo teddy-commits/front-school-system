@@ -1,9 +1,30 @@
 import apiClient, { handleApiError } from '../client';
 
+interface EnrollInCourseData {
+  studentId: number;
+  courseCode: string;
+  semester?: string;
+  academicYear?: number;
+}
+
+interface EnrollInSectionData {
+  studentId: number;
+  sectionId: number;
+  semester?: string;
+  academicYear?: number;
+}
+
+interface GetCourseEnrollmentsParams {
+  courseId: number;
+  semester: string;
+  academicYear: number;
+  sectionId?: number;
+}
+
 export const enrollmentApi = {
   // ========== Course-based Enrollment (Legacy) ==========
   
-  enrollInCourse: async (data) => {
+  enrollInCourse: async (data: EnrollInCourseData) => {
     try {
       const response = await apiClient.post('/grading/enrollments/course', data);
       return { success: true, data: response.data };
@@ -12,7 +33,7 @@ export const enrollmentApi = {
     }
   },
 
-  withdrawFromCourse: async (enrollmentId) => {
+  withdrawFromCourse: async (enrollmentId: number) => {
     try {
       const response = await apiClient.delete(`/grading/enrollments/course/${enrollmentId}`);
       return { success: true, data: response.data };
@@ -21,7 +42,7 @@ export const enrollmentApi = {
     }
   },
 
-  getStudentCourseEnrollments: async (studentId) => {
+  getStudentCourseEnrollments: async (studentId: number) => {
     try {
       const response = await apiClient.get(`/grading/enrollments/course/students/${studentId}`);
       return { success: true, data: response.data };
@@ -30,7 +51,7 @@ export const enrollmentApi = {
     }
   },
 
-  getActiveCourseEnrollments: async (studentId) => {
+  getActiveCourseEnrollments: async (studentId: number) => {
     try {
       const response = await apiClient.get(`/grading/enrollments/course/students/${studentId}/active`);
       return { success: true, data: response.data };
@@ -40,7 +61,7 @@ export const enrollmentApi = {
   },
 
   // Get enrollments by course CODE (old - keep for backward compatibility)
-  getCourseEnrollmentsByCode: async (courseCode) => {
+  getCourseEnrollmentsByCode: async (courseCode: string) => {
     try {
       const response = await apiClient.get(`/grading/enrollments/course/courses/${courseCode}`);
       return { success: true, data: response.data };
@@ -48,7 +69,8 @@ export const enrollmentApi = {
       return handleApiError(error);
     }
   },
-getCourseEnrollments: async (courseId, semester, academicYear, sectionId) => {
+  
+  getCourseEnrollments: async (courseId: number, semester: string, academicYear: number, sectionId?: number) => {
     try {
       let url = `/grading/enrollments/course/${courseId}/students?semester=${encodeURIComponent(semester)}&academicYear=${academicYear}`;
       
@@ -64,7 +86,7 @@ getCourseEnrollments: async (courseId, semester, academicYear, sectionId) => {
     }
   },
 
-  isStudentEnrolledInCourse: async (studentId, courseCode) => {
+  isStudentEnrolledInCourse: async (studentId: number, courseCode: string) => {
     try {
       const response = await apiClient.get(`/grading/enrollments/course/check?studentId=${studentId}&courseCode=${courseCode}`);
       return { success: true, data: response.data };
@@ -75,16 +97,15 @@ getCourseEnrollments: async (courseId, semester, academicYear, sectionId) => {
 
   // ========== Section-based Enrollment (New) ==========
 
-  enrollInSection: async (studentId, sectionId, semester, academicYear) => {
+  enrollInSection: async ({ studentId, sectionId, semester, academicYear }: EnrollInSectionData) => {
     try {
-      // ✅ Match the backend URL pattern
       const response = await apiClient.post(
         `/grading/enrollments/section/${sectionId}/student/${studentId}`,
-        null,  // No request body
+        null,
         { 
           params: { 
-            semester: semester, 
-            academicYear: academicYear 
+            semester: semester || 'FALL', 
+            academicYear: academicYear || new Date().getFullYear() 
           } 
         }
       );
@@ -94,7 +115,7 @@ getCourseEnrollments: async (courseId, semester, academicYear, sectionId) => {
     }
   },
 
-  dropSection: async (enrollmentId) => {
+  dropSection: async (enrollmentId: number) => {
     try {
       const response = await apiClient.delete(`/grading/enrollments/section/${enrollmentId}`);
       return { success: true, data: response.data };
@@ -103,7 +124,7 @@ getCourseEnrollments: async (courseId, semester, academicYear, sectionId) => {
     }
   },
 
-  getStudentSectionEnrollments: async (studentId) => {
+  getStudentSectionEnrollments: async (studentId: number) => {
     try {
       const response = await apiClient.get(`/grading/enrollments/section/students/${studentId}`);
       return { success: true, data: response.data };
@@ -112,7 +133,7 @@ getCourseEnrollments: async (courseId, semester, academicYear, sectionId) => {
     }
   },
 
-  getStudentSectionEnrollmentsBySemester: async (studentId, semester, academicYear) => {
+  getStudentSectionEnrollmentsBySemester: async (studentId: number, semester: string, academicYear: number) => {
     try {
       const response = await apiClient.get(`/grading/enrollments/section/students/${studentId}/semester?semester=${semester}&academicYear=${academicYear}`);
       return { success: true, data: response.data };
@@ -121,7 +142,7 @@ getCourseEnrollments: async (courseId, semester, academicYear, sectionId) => {
     }
   },
 
-  getSectionEnrollments: async (sectionId) => {
+  getSectionEnrollments: async (sectionId: number) => {
     try {
       const response = await apiClient.get(`/grading/enrollments/section/sections/${sectionId}`);
       return { success: true, data: response.data };
@@ -130,7 +151,7 @@ getCourseEnrollments: async (courseId, semester, academicYear, sectionId) => {
     }
   },
 
-  getInstructorStudents: async (semester, academicYear) => {
+  getInstructorStudents: async (semester: string, academicYear: number) => {
     try {
       const response = await apiClient.get(`/grading/enrollments/section/instructor/students?semester=${semester}&academicYear=${academicYear}`);
       return { success: true, data: response.data };
@@ -139,7 +160,7 @@ getCourseEnrollments: async (courseId, semester, academicYear, sectionId) => {
     }
   },
 
-  isStudentEnrolledInSection: async (studentId, sectionId) => {
+  isStudentEnrolledInSection: async (studentId: number, sectionId: number) => {
     try {
       const response = await apiClient.get(`/grading/enrollments/section/check?studentId=${studentId}&sectionId=${sectionId}`);
       return { success: true, data: response.data };
@@ -148,7 +169,7 @@ getCourseEnrollments: async (courseId, semester, academicYear, sectionId) => {
     }
   },
 
-  getSectionsBySemester: async (semester, academicYear) => {
+  getSectionsBySemester: async (semester: string, academicYear: number) => {
     try {
       const response = await apiClient.get(`/grading/sections/semester?semester=${semester}&academicYear=${academicYear}`);
       return { success: true, data: response.data };

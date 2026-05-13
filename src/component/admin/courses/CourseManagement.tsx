@@ -34,6 +34,28 @@ interface Course {
   updatedAt: string;
 }
 
+interface Instructor {
+  id: number;
+  fullName: string;
+  email: string;
+  department?: string;
+}
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const CourseManagement: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [filteredCourses, setFilteredCourses] = useState<Course[]>([]);
@@ -45,7 +67,7 @@ const CourseManagement: React.FC = () => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [instructors, setInstructors] = useState<any[]>([]);
+  const [instructors, setInstructors] = useState<Instructor[]>([]);
 
   const statuses = ['ALL', 'DRAFT', 'OPEN', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
   const semesters = ['ALL', 'FALL', 'SPRING', 'SUMMER'];
@@ -62,11 +84,13 @@ const CourseManagement: React.FC = () => {
   const fetchCourses = async () => {
     setIsLoading(true);
     try {
-      const result = await courseApi.getAllCourses();
-      if (result.success) {
-        setCourses(result.data);
-      } else {
+      const result = await courseApi.getAllCourses() as ApiResponse<Course[]>;
+      if (result.success && 'data' in result) {
+        setCourses(Array.isArray(result.data) ? result.data : []);
+      } else if (!result.success && 'message' in result) {
         toast.error(result.message);
+      } else {
+        toast.error('Failed to load courses');
       }
     } catch (error) {
       console.error('Error fetching courses:', error);
@@ -78,9 +102,9 @@ const CourseManagement: React.FC = () => {
 
   const fetchInstructors = async () => {
     try {
-      const result = await registrationApi.getAllInstructors();
-      if (result.success) {
-        setInstructors(result.data);
+      const result = await registrationApi.getAllInstructors() as ApiResponse<Instructor[]>;
+      if (result.success && 'data' in result) {
+        setInstructors(Array.isArray(result.data) ? result.data : []);
       }
     } catch (error) {
       console.error('Error fetching instructors:', error);
@@ -111,28 +135,32 @@ const CourseManagement: React.FC = () => {
 
   const handleDelete = async (id: number, courseCode: string) => {
     if (window.confirm(`Are you sure you want to delete course ${courseCode}?`)) {
-      const result = await courseApi.deleteCourse(id);
+      const result = await courseApi.deleteCourse(id) as ApiResponse;
       if (result.success) {
         toast.success('Course deleted successfully');
         fetchCourses();
-      } else {
+      } else if (!result.success && 'message' in result) {
         toast.error(result.message);
+      } else {
+        toast.error('Failed to delete course');
       }
     }
   };
 
   const handleStatusChange = async (id: number, newStatus: string) => {
-    const result = await courseApi.updateCourseStatus(id, newStatus);
+    const result = await courseApi.updateCourseStatus(id, newStatus) as ApiResponse;
     if (result.success) {
       toast.success(`Course status updated to ${newStatus}`);
       fetchCourses();
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to update status');
     }
   };
 
   const getStatusBadge = (status: string) => {
-    const styles = {
+    const styles: Record<string, string> = {
       DRAFT: 'bg-gray-100 text-gray-800',
       OPEN: 'bg-green-100 text-green-800',
       IN_PROGRESS: 'bg-blue-100 text-blue-800',
@@ -193,7 +221,7 @@ const CourseManagement: React.FC = () => {
             <div>
               <p className="text-sm text-gray-500">Total Enrollments</p>
               <p className="text-2xl font-bold text-purple-600">
-                {courses.reduce((sum, c) => sum + c.enrolledStudents, 0)}
+                {courses.reduce((sum, c) => sum + (c.enrolledStudents || 0), 0)}
               </p>
             </div>
             <Users className="w-8 h-8 text-purple-500" />
@@ -204,7 +232,7 @@ const CourseManagement: React.FC = () => {
             <div>
               <p className="text-sm text-gray-500">Avg. Class Size</p>
               <p className="text-2xl font-bold text-orange-600">
-                {Math.round(courses.reduce((sum, c) => sum + c.enrolledStudents, 0) / courses.length) || 0}
+                {Math.round(courses.reduce((sum, c) => sum + (c.enrolledStudents || 0), 0) / (courses.length || 1))}
               </p>
             </div>
             <Users className="w-8 h-8 text-orange-500" />
@@ -323,7 +351,7 @@ const CourseManagement: React.FC = () => {
                               setSelectedCourse(course);
                               setShowDetailsModal(true);
                             }}
-                            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                            className="p-1 text-blue-600 hover:bg-blue-50 rounded transition"
                             title="View Details"
                           >
                             <Eye className="w-4 h-4" />
@@ -333,7 +361,7 @@ const CourseManagement: React.FC = () => {
                               setSelectedCourse(course);
                               setShowEditModal(true);
                             }}
-                            className="p-1 text-green-600 hover:bg-green-50 rounded"
+                            className="p-1 text-green-600 hover:bg-green-50 rounded transition"
                             title="Edit"
                           >
                             <Edit className="w-4 h-4" />
@@ -341,7 +369,7 @@ const CourseManagement: React.FC = () => {
                           <select
                             value={course.status}
                             onChange={(e) => handleStatusChange(course.id, e.target.value)}
-                            className="text-xs border border-gray-300 rounded px-2 py-1"
+                            className="text-xs border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500"
                           >
                             {statuses.filter(s => s !== 'ALL').map(status => (
                               <option key={status} value={status}>{status}</option>
@@ -349,7 +377,7 @@ const CourseManagement: React.FC = () => {
                           </select>
                           <button
                             onClick={() => handleDelete(course.id, course.courseCode)}
-                            className="p-1 text-red-600 hover:bg-red-50 rounded"
+                            className="p-1 text-red-600 hover:bg-red-50 rounded transition"
                             title="Delete"
                           >
                             <Trash2 className="w-4 h-4" />

@@ -12,10 +12,51 @@ import { financeApi } from '../../api/modules/financeApi';
 import { registrationApi } from '../../api/modules/registrationApi';
 import toast from 'react-hot-toast';
 
+interface Payment {
+  id: number;
+  amount: number;
+  status: string;
+  transactionId: string;
+  studentName: string;
+  paymentMethod: string;
+  paymentDate: string;
+}
+
+interface OverdueFee {
+  id: number;
+  studentId: number;
+  studentName: string;
+  amount: number;
+  dueDate: string;
+  feeType: string;
+}
+
+interface DashboardStats {
+  totalRevenue: number;
+  totalOutstanding: number;
+  totalTransactions: number;
+  overdueCount: number;
+}
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const ManagementDashboard: React.FC = () => {
   const { user } = useAuth();
   const location = useLocation();
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<DashboardStats>({
     totalRevenue: 0,
     totalOutstanding: 0,
     totalTransactions: 0,
@@ -30,15 +71,27 @@ const ManagementDashboard: React.FC = () => {
   const fetchDashboardStats = async () => {
     setIsLoading(true);
     try {
-      const paymentsResult = await financeApi.getAllPayments();
-      const overdueResult = await financeApi.getOverdueFees();
+      const paymentsResult = await financeApi.getAllPayments() as ApiResponse<Payment[]>;
+      const overdueResult = await financeApi.getOverdueFees() as ApiResponse<OverdueFee[]>;
       
-      if (paymentsResult.success) {
-        const totalPaid = paymentsResult.data.reduce((sum: number, p: any) => sum + p.amount, 0);
-        setStats(prev => ({ ...prev, totalRevenue: totalPaid, totalTransactions: paymentsResult.data.length }));
+      if (paymentsResult.success && 'data' in paymentsResult && Array.isArray(paymentsResult.data)) {
+        const totalPaid = paymentsResult.data.reduce((sum: number, p: Payment) => sum + (p.amount || 0), 0);
+        setStats(prev => ({ 
+          ...prev, 
+          totalRevenue: totalPaid, 
+          totalTransactions: paymentsResult.data.length 
+        }));
+      } else if (!paymentsResult.success && 'message' in paymentsResult) {
+        toast.error(paymentsResult.message);
       }
-      if (overdueResult.success) {
-        setStats(prev => ({ ...prev, overdueCount: overdueResult.data.length }));
+      
+      if (overdueResult.success && 'data' in overdueResult && Array.isArray(overdueResult.data)) {
+        setStats(prev => ({ 
+          ...prev, 
+          overdueCount: overdueResult.data.length 
+        }));
+      } else if (!overdueResult.success && 'message' in overdueResult) {
+        toast.error(overdueResult.message);
       }
     } catch (error) {
       console.error('Error fetching stats:', error);

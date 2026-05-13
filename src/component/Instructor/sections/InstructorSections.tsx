@@ -10,7 +10,7 @@ interface Section {
   courseCode: string;
   courseName: string;
   sectionCode: string;
-  academicYearLevel: number;  // NEW - Year of study
+  academicYearLevel: number;
   semester: string;
   academicYear: number;
   enrolledStudents: number;
@@ -29,8 +29,23 @@ interface Student {
   status: string;
 }
 
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const InstructorSections: React.FC = () => {
-  const { userEmail } = useAuth();
+  const { user } = useAuth(); // Changed from userEmail to user
   const [sections, setSections] = useState<Section[]>([]);
   const [selectedSection, setSelectedSection] = useState<Section | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
@@ -48,22 +63,26 @@ const InstructorSections: React.FC = () => {
 
   const fetchMySections = async () => {
     setIsLoading(true);
-    const result = await sectionApi.getMySections(selectedSemester, selectedYear);
-    if (result.success) {
-      setSections(result.data);
-    } else {
+    const result = await sectionApi.getMySections(selectedSemester, selectedYear) as ApiResponse<Section[]>;
+    if (result.success && 'data' in result) {
+      setSections(Array.isArray(result.data) ? result.data : []);
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to fetch sections');
     }
     setIsLoading(false);
   };
 
   const fetchSectionStudents = async (sectionId: number) => {
-    const result = await enrollmentApi.getSectionEnrollments(sectionId);
-    if (result.success) {
-      setStudents(result.data);
+    const result = await enrollmentApi.getSectionEnrollments(sectionId) as ApiResponse<Student[]>;
+    if (result.success && 'data' in result) {
+      setStudents(Array.isArray(result.data) ? result.data : []);
       setShowStudentModal(true);
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to fetch students');
     }
   };
 
@@ -209,7 +228,7 @@ const InstructorSections: React.FC = () => {
                   {selectedSection.semester} {selectedSection.academicYear} | {selectedSection.schedule} | {selectedSection.room}
                 </p>
               </div>
-              <button onClick={() => setShowStudentModal(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setShowStudentModal(false)} className="text-gray-400 hover:text-gray-600 transition">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -237,7 +256,9 @@ const InstructorSections: React.FC = () => {
                           <td className="px-6 py-4 text-sm font-mono text-blue-600">{student.studentIdNumber}</td>
                           <td className="px-6 py-4 text-sm font-medium text-gray-900">{student.studentName}</td>
                           <td className="px-6 py-4 text-sm text-gray-600">{student.email}</td>
-                          <td className="px-6 py-4 text-sm text-gray-600">{new Date(student.enrollmentDate).toLocaleDateString()}</td>
+                          <td className="px-6 py-4 text-sm text-gray-600">
+                            {new Date(student.enrollmentDate).toLocaleDateString()}
+                          </td>
                           <td className="px-6 py-4">
                             <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                               {student.status}

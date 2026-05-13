@@ -4,13 +4,60 @@ import { gradeApi } from '../../../api/modules/gradeApi';
 import { useAuth } from '../../../context/AuthContext';
 import toast from 'react-hot-toast';
 
+interface Course {
+  id?: number;
+  courseCode: string;
+  courseName: string;
+  semester?: string;
+  academicYear?: number;
+  credits?: number;
+}
+
+interface Student {
+  studentId: number;
+  studentName?: string;
+  studentIdNumber?: string;
+  fullName?: string;
+  email?: string;
+}
+
+interface ExistingGrade {
+  id: number;
+  score: number;
+  remarks?: string;
+  gradeLetter?: string;
+  gradePoint?: number;
+}
+
 interface GradeSubmissionModalProps {
-  course: any;
-  student: any;
-  existingGrade: any;
+  course: Course | null;
+  student: Student | null;
+  existingGrade: ExistingGrade | null;
   onClose: () => void;
   onSuccess: () => void;
 }
+
+interface FormData {
+  score: string;
+  semester: string;
+  academicYear: number;
+  remarks: string;
+}
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
 
 const GradeSubmissionModal: React.FC<GradeSubmissionModalProps> = ({
   course,
@@ -19,10 +66,10 @@ const GradeSubmissionModal: React.FC<GradeSubmissionModalProps> = ({
   onClose,
   onSuccess
 }) => {
-  const { userEmail } = useAuth();
+  const { user } = useAuth(); // Changed from userEmail to user
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    score: existingGrade?.score || '',
+  const [formData, setFormData] = useState<FormData>({
+    score: existingGrade?.score?.toString() || '',
     semester: course?.semester || 'FALL',
     academicYear: course?.academicYear || new Date().getFullYear(),
     remarks: existingGrade?.remarks || ''
@@ -44,29 +91,47 @@ const GradeSubmissionModal: React.FC<GradeSubmissionModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!course || !student) {
+      toast.error('Missing course or student information');
+      return;
+    }
+    
     setIsLoading(true);
+
+    const scoreValue = parseFloat(formData.score);
+    if (isNaN(scoreValue) || scoreValue < 0 || scoreValue > 100) {
+      toast.error('Please enter a valid score between 0 and 100');
+      setIsLoading(false);
+      return;
+    }
 
     const gradeData = {
       studentId: student.studentId,
       courseCode: course.courseCode,
-      score: parseFloat(formData.score),
+      score: scoreValue,
       semester: formData.semester,
       academicYear: formData.academicYear,
       remarks: formData.remarks
     };
 
-    let result;
+    let result: ApiResponse;
     if (existingGrade) {
-      result = await gradeApi.updateGrade(existingGrade.id, { score: parseFloat(formData.score), remarks: formData.remarks });
+      result = await gradeApi.updateGrade(existingGrade.id, { 
+        score: scoreValue, 
+        remarks: formData.remarks 
+      }) as ApiResponse;
     } else {
-      result = await gradeApi.submitGrade(gradeData);
+      result = await gradeApi.submitGrade(gradeData) as ApiResponse;
     }
 
     if (result.success) {
       toast.success(existingGrade ? 'Grade updated successfully!' : 'Grade submitted successfully!');
       onSuccess();
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to save grade');
     }
     setIsLoading(false);
   };
@@ -80,7 +145,7 @@ const GradeSubmissionModal: React.FC<GradeSubmissionModalProps> = ({
           <h2 className="text-xl font-semibold">
             {existingGrade ? 'Edit Grade' : 'Submit Grade'}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -90,7 +155,7 @@ const GradeSubmissionModal: React.FC<GradeSubmissionModalProps> = ({
             <p className="text-sm text-gray-600">Course</p>
             <p className="font-semibold">{course?.courseCode} - {course?.courseName}</p>
             <p className="text-sm text-gray-600 mt-2">Student</p>
-            <p className="font-semibold">{student?.studentName} ({student?.studentIdNumber})</p>
+            <p className="font-semibold">{student?.studentName || student?.fullName} ({student?.studentIdNumber || student?.studentId})</p>
           </div>
 
           <div>
@@ -118,7 +183,7 @@ const GradeSubmissionModal: React.FC<GradeSubmissionModalProps> = ({
               <select
                 value={formData.semester}
                 onChange={(e) => setFormData({...formData, semester: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
                 <option value="FALL">Fall</option>
                 <option value="SPRING">Spring</option>
@@ -131,7 +196,7 @@ const GradeSubmissionModal: React.FC<GradeSubmissionModalProps> = ({
                 type="number"
                 value={formData.academicYear}
                 onChange={(e) => setFormData({...formData, academicYear: parseInt(e.target.value)})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -142,7 +207,7 @@ const GradeSubmissionModal: React.FC<GradeSubmissionModalProps> = ({
               rows={2}
               value={formData.remarks}
               onChange={(e) => setFormData({...formData, remarks: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               placeholder="Additional comments about the student's performance"
             />
           </div>
@@ -158,7 +223,7 @@ const GradeSubmissionModal: React.FC<GradeSubmissionModalProps> = ({
             <button
               type="submit"
               disabled={isLoading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Saving...' : (existingGrade ? 'Update Grade' : 'Submit Grade')}
             </button>

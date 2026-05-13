@@ -4,6 +4,15 @@ import { sectionApi } from '../../../api/modules/sectionApi';
 import { courseApi } from '../../../api/modules/courseApi';
 import toast from 'react-hot-toast';
 
+interface Course {
+  id: number;
+  courseCode: string;
+  courseName: string;
+  credits: number;
+  department: string;
+  status?: string;
+}
+
 interface AddCourseModalProps {
   sectionId: number;
   sectionName: string;
@@ -11,11 +20,26 @@ interface AddCourseModalProps {
   onSuccess: () => void;
 }
 
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const AddCourseModal: React.FC<AddCourseModalProps> = ({ sectionId, sectionName, onClose, onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [courses, setCourses] = useState<any[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCourse, setSelectedCourse] = useState<any>(null);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [schedule, setSchedule] = useState('');
   const [room, setRoom] = useState('');
 
@@ -24,9 +48,13 @@ const AddCourseModal: React.FC<AddCourseModalProps> = ({ sectionId, sectionName,
   }, []);
 
   const fetchCourses = async () => {
-    const result = await courseApi.getAllCourses();
-    if (result.success) {
-      setCourses(result.data);
+    const result = await courseApi.getAllCourses() as ApiResponse<Course[]>;
+    if (result.success && 'data' in result) {
+      setCourses(Array.isArray(result.data) ? result.data : []);
+    } else if (!result.success && 'message' in result) {
+      toast.error(result.message);
+    } else {
+      toast.error('Failed to fetch courses');
     }
   };
 
@@ -47,14 +75,16 @@ const AddCourseModal: React.FC<AddCourseModalProps> = ({ sectionId, sectionName,
       courseId: selectedCourse.id,
       schedule,
       room
-    });
+    }) as ApiResponse;
 
     if (result.success) {
       toast.success('Course added to section successfully');
       onSuccess();
       onClose();
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to add course to section');
     }
     setIsLoading(false);
   };
@@ -108,7 +138,7 @@ const AddCourseModal: React.FC<AddCourseModalProps> = ({ sectionId, sectionName,
             ))}
             {filteredCourses.length === 0 && (
               <div className="p-8 text-center text-gray-500">
-                No courses found
+                {courses.length === 0 ? 'Loading courses...' : 'No courses found'}
               </div>
             )}
           </div>
@@ -147,14 +177,14 @@ const AddCourseModal: React.FC<AddCourseModalProps> = ({ sectionId, sectionName,
           <div className="flex justify-end space-x-3 pt-4">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
             >
               Cancel
             </button>
             <button
               onClick={handleAddCourse}
               disabled={!selectedCourse || isLoading}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Adding...' : 'Add Course'}
             </button>

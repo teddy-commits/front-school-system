@@ -19,6 +19,21 @@ interface Session {
   updatedAt: string;
 }
 
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const RegistrationSessionManagement: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,25 +56,29 @@ const RegistrationSessionManagement: React.FC = () => {
 
   const fetchSessions = async () => {
     setIsLoading(true);
-    const result = await registrationSessionApi.getAllSessions();
-    if (result.success) {
-      setSessions(result.data);
-    } else {
+    const result = await registrationSessionApi.getAllSessions() as ApiResponse<Session[]>;
+    if (result.success && 'data' in result) {
+      setSessions(Array.isArray(result.data) ? result.data : []);
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to fetch sessions');
     }
     setIsLoading(false);
   };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = await registrationSessionApi.createSession(formData);
+    const result = await registrationSessionApi.createSession(formData) as ApiResponse;
     if (result.success) {
       toast.success('Registration session created successfully');
       setShowCreateModal(false);
       resetForm();
       fetchSessions();
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to create session');
     }
   };
 
@@ -67,47 +86,55 @@ const RegistrationSessionManagement: React.FC = () => {
     e.preventDefault();
     if (!editingSession) return;
     
-    const result = await registrationSessionApi.updateSession(editingSession.id, formData);
+    const result = await registrationSessionApi.updateSession(editingSession.id, formData) as ApiResponse;
     if (result.success) {
       toast.success('Registration session updated successfully');
       setEditingSession(null);
       resetForm();
       fetchSessions();
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to update session');
     }
   };
 
   const handleCloseSession = async (id: number) => {
     if (window.confirm('Are you sure you want to close this registration session?')) {
-      const result = await registrationSessionApi.closeSession(id);
+      const result = await registrationSessionApi.closeSession(id) as ApiResponse;
       if (result.success) {
         toast.success('Registration session closed');
         fetchSessions();
-      } else {
+      } else if (!result.success && 'message' in result) {
         toast.error(result.message);
+      } else {
+        toast.error('Failed to close session');
       }
     }
   };
 
   const handleActivateSession = async (id: number) => {
-    const result = await registrationSessionApi.activateSession(id);
+    const result = await registrationSessionApi.activateSession(id) as ApiResponse;
     if (result.success) {
       toast.success('Registration session activated');
       fetchSessions();
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to activate session');
     }
   };
 
   const handleDeleteSession = async (id: number) => {
     if (window.confirm('Delete this session permanently? This action cannot be undone.')) {
-      const result = await registrationSessionApi.deleteSession(id);
+      const result = await registrationSessionApi.deleteSession(id) as ApiResponse;
       if (result.success) {
         toast.success('Session deleted successfully');
         fetchSessions();
-      } else {
+      } else if (!result.success && 'message' in result) {
         toast.error(result.message);
+      } else {
+        toast.error('Failed to delete session');
       }
     }
   };
@@ -134,7 +161,11 @@ const RegistrationSessionManagement: React.FC = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
+    try {
+      return new Date(dateString).toLocaleString();
+    } catch {
+      return 'Invalid date';
+    }
   };
 
   const isSessionActive = (session: Session) => {

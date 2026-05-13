@@ -17,6 +17,64 @@ interface Department {
   isActive: boolean;
 }
 
+interface InstructorData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  phoneNumber: string;
+  designation: string;
+  departmentId: number | null;
+  faculty: string;
+  qualification: string;
+  position: string;
+  salary: number | null;
+  role: string;
+}
+
+interface AcademicAdminData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  phoneNumber: string;
+  designation: string;
+  faculty: string;
+  qualification: string;
+  position: string;
+  salary: number | null;
+  role: string;
+}
+
+interface ManagementData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  phoneNumber: string;
+  designation: string;
+  faculty: string;
+  qualification: string;
+  position: string;
+  salary: number | null;
+  role: string;
+}
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [userType, setUserType] = useState('INSTRUCTOR');
@@ -43,11 +101,14 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
 
   const fetchDepartments = async () => {
     setLoadingDepartments(true);
-    const result = await departmentApi.getActiveDepartments();
-    if (result.success) {
-      setDepartments(result.data);
-    } else {
+    const result = await departmentApi.getActiveDepartments() as ApiResponse<Department[]>;
+    if (result.success && 'data' in result) {
+      setDepartments(Array.isArray(result.data) ? result.data : []);
+    } else if (!result.success && 'message' in result) {
       console.error('Failed to fetch departments:', result.message);
+      toast.error('Failed to load departments');
+    } else {
+      toast.error('Failed to load departments');
     }
     setLoadingDepartments(false);
   };
@@ -76,52 +137,80 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
     e.preventDefault();
     setIsLoading(true);
 
-    // Prepare data for API
-    const submitData = {
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      email: formData.email,
-      password: formData.password,
-      phoneNumber: formData.phoneNumber,
-      designation: formData.designation,
-      departmentId: formData.departmentId ? parseInt(formData.departmentId) : null,
-      faculty: formData.faculty,
-      qualification: formData.qualification,
-      position: formData.position,
-      salary: formData.salary ? parseFloat(formData.salary) : null
-    };
+    let result: ApiResponse;
 
-    let result;
     switch (userType) {
       case 'INSTRUCTOR':
         // Validate department for instructor
-        if (!submitData.departmentId) {
+        if (!formData.departmentId) {
           toast.error('Department is required for Instructor');
           setIsLoading(false);
           return;
         }
-        result = await registrationApi.createInstructor(submitData);
+        
+        const instructorData: InstructorData = {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password,
+          phoneNumber: formData.phoneNumber,
+          designation: formData.designation,
+          departmentId: formData.departmentId ? parseInt(formData.departmentId) : null,
+          faculty: formData.faculty,
+          qualification: formData.qualification,
+          position: formData.position,
+          salary: formData.salary ? parseFloat(formData.salary) : null,
+          role: 'INSTRUCTOR'
+        };
+        result = await registrationApi.createInstructor(instructorData) as ApiResponse;
         break;
+        
       case 'ACADEMIC_ADMINISTRATOR':
-        // Remove departmentId for Academic Administrator (not needed)
-        const { departmentId, ...academicData } = submitData;
-        result = await registrationApi.createAcademicAdministrator(academicData);
+        const academicData: AcademicAdminData = {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password,
+          phoneNumber: formData.phoneNumber,
+          designation: formData.designation,
+          faculty: formData.faculty,
+          qualification: formData.qualification,
+          position: formData.position,
+          salary: formData.salary ? parseFloat(formData.salary) : null,
+          role: 'ACADEMIC_ADMINISTRATOR'
+        };
+        result = await registrationApi.createAcademicAdministrator(academicData) as ApiResponse;
         break;
+        
       case 'MANAGEMENT':
-        // Remove departmentId for Management (not needed)
-        const { departmentId: deptId, ...managementData } = submitData;
-        result = await registrationApi.createManagementStaff(managementData);
+        const managementData: ManagementData = {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password,
+          phoneNumber: formData.phoneNumber,
+          designation: formData.designation,
+          faculty: formData.faculty,
+          qualification: formData.qualification,
+          position: formData.position,
+          salary: formData.salary ? parseFloat(formData.salary) : null,
+          role: 'MANAGEMENT'
+        };
+        result = await registrationApi.createManagementStaff(managementData) as ApiResponse;
         break;
+        
       default:
-        result = { success: false, message: 'Invalid user type' };
+        result = { success: false, message: 'Invalid user type' } as ApiErrorResponse;
     }
 
     if (result.success) {
       toast.success(`${userType} created successfully!`);
       onSuccess();
       onClose();
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to create user');
     }
 
     setIsLoading(false);
@@ -137,7 +226,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
       <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-white">
           <h2 className="text-xl font-semibold">Create New User</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -178,7 +267,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
                 required
                 value={formData.lastName}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -193,7 +282,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
                 required
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -204,7 +293,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
                 required
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -216,7 +305,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
               name="phoneNumber"
               value={formData.phoneNumber}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
@@ -232,7 +321,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
                     value={formData.designation}
                     onChange={handleChange}
                     placeholder="e.g., Professor, Assistant Professor"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
@@ -243,7 +332,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
                     value={formData.qualification}
                     onChange={handleChange}
                     placeholder="e.g., PhD, Masters"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -301,7 +390,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
                     value={formData.designation}
                     onChange={handleChange}
                     placeholder="e.g., Registrar, Dean, HOD"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
@@ -312,7 +401,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
                     value={formData.qualification}
                     onChange={handleChange}
                     placeholder="e.g., PhD, Masters"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -330,7 +419,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
                   value={formData.position}
                   onChange={handleChange}
                   placeholder="e.g., Finance Director, HR Manager"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
@@ -340,7 +429,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
                   name="salary"
                   value={formData.salary}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -357,7 +446,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
             <button
               type="submit"
               disabled={isLoading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Creating...' : 'Create User'}
             </button>

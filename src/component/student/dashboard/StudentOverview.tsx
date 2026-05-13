@@ -5,11 +5,51 @@ import { gradeApi } from '../../../api/modules/gradeApi';
 import { financeApi } from '../../../api/modules/financeApi';
 import { useAuth } from '../../../context/AuthContext';
 
+// Define proper types
+interface Grade {
+  id: number;
+  courseCode: string;
+  courseName: string;
+  credits: number;
+  score: number;
+  gradeLetter: string;
+  gradePoint: number;
+  semester: string;
+  academicYear: number;
+}
+
+interface Payment {
+  id: number;
+  transactionId: string;
+  amount: number;
+  paymentMethod: string;
+  status: string;
+  referenceNumber: string;
+  receiptNumber: string;
+  paymentDate: string;
+  feeDescription: string;
+}
+
 interface StudentOverviewProps {
   cgpa: number;
   totalOutstanding: number;
   enrolledCourses: number;
 }
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
 
 const StudentOverview: React.FC<StudentOverviewProps> = ({ 
   cgpa, 
@@ -17,8 +57,8 @@ const StudentOverview: React.FC<StudentOverviewProps> = ({
   enrolledCourses 
 }) => {
   const { userId } = useAuth();
-  const [recentGrades, setRecentGrades] = useState<any[]>([]);
-  const [recentPayments, setRecentPayments] = useState<any[]>([]);
+  const [recentGrades, setRecentGrades] = useState<Grade[]>([]);
+  const [recentPayments, setRecentPayments] = useState<Payment[]>([]);
   const [upcomingDeadlines, setUpcomingDeadlines] = useState<any[]>([]);
 
   useEffect(() => {
@@ -29,13 +69,13 @@ const StudentOverview: React.FC<StudentOverviewProps> = ({
 
   const fetchRecentData = async () => {
     try {
-      const gradesResult = await gradeApi.getStudentGrades(userId!);
-      if (gradesResult.success) {
+      const gradesResult = await gradeApi.getStudentGrades(userId!) as ApiResponse<Grade[]>;
+      if (gradesResult.success && 'data' in gradesResult && Array.isArray(gradesResult.data)) {
         setRecentGrades(gradesResult.data.slice(0, 3));
       }
 
-      const paymentsResult = await financeApi.getStudentPayments(userId!);
-      if (paymentsResult.success) {
+      const paymentsResult = await financeApi.getStudentPayments(userId!) as ApiResponse<Payment[]>;
+      if (paymentsResult.success && 'data' in paymentsResult && Array.isArray(paymentsResult.data)) {
         setRecentPayments(paymentsResult.data.slice(0, 3));
       }
     } catch (error) {
@@ -51,7 +91,7 @@ const StudentOverview: React.FC<StudentOverviewProps> = ({
   ];
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'ETB' }).format(amount || 0);
   };
 
   return (

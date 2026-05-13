@@ -4,12 +4,48 @@ import { useAuth } from '../../../context/AuthContext';
 import { registrationApi } from '../../../api/modules/registrationApi';
 import toast from 'react-hot-toast';
 
+interface InstructorProfileData {
+  id: number;
+  fullName: string;
+  email: string;
+  employeeId?: string;
+  phoneNumber?: string;
+  address?: string;
+  officeLocation?: string;
+  designation?: string;
+  qualification?: string;
+  department?: string;
+  joiningDate?: string;
+  isActive?: boolean;
+}
+
+interface FormData {
+  phoneNumber: string;
+  address: string;
+  officeLocation: string;
+}
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const InstructorProfile: React.FC = () => {
   const { userId } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<InstructorProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     phoneNumber: '',
     address: '',
     officeLocation: ''
@@ -24,14 +60,18 @@ const InstructorProfile: React.FC = () => {
   const fetchProfile = async () => {
     setIsLoading(true);
     try {
-      const result = await registrationApi.getUserById(userId!);
-      if (result.success) {
+      const result = await registrationApi.getUserById(userId!) as ApiResponse<InstructorProfileData>;
+      if (result.success && 'data' in result) {
         setProfile(result.data);
         setFormData({
           phoneNumber: result.data.phoneNumber || '',
           address: result.data.address || '',
           officeLocation: result.data.officeLocation || ''
         });
+      } else if (!result.success && 'message' in result) {
+        toast.error(result.message);
+      } else {
+        toast.error('Failed to load profile');
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -42,13 +82,15 @@ const InstructorProfile: React.FC = () => {
   };
 
   const handleUpdate = async () => {
-    const result = await registrationApi.updateUser(userId!, formData);
+    const result = await registrationApi.updateUser(userId!, formData) as ApiResponse;
     if (result.success) {
       toast.success('Profile updated successfully');
       setIsEditing(false);
       fetchProfile();
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to update profile');
     }
   };
 
@@ -108,13 +150,13 @@ const InstructorProfile: React.FC = () => {
           <div className="flex items-center space-x-4">
             <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center">
               <span className="text-2xl font-bold text-white">
-                {profile?.fullName?.charAt(0) || 'I'}
+                {profile.fullName?.charAt(0) || 'I'}
               </span>
             </div>
             <div>
-              <h3 className="text-xl font-bold text-gray-800">{profile?.fullName}</h3>
-              <p className="text-blue-600">{profile?.employeeId}</p>
-              <p className="text-sm text-gray-500">{profile?.designation || 'Instructor'}</p>
+              <h3 className="text-xl font-bold text-gray-800">{profile.fullName}</h3>
+              <p className="text-blue-600">{profile.employeeId}</p>
+              <p className="text-sm text-gray-500">{profile.designation || 'Instructor'}</p>
             </div>
           </div>
         </div>
@@ -125,14 +167,14 @@ const InstructorProfile: React.FC = () => {
               <User className="w-5 h-5 text-gray-400" />
               <div>
                 <p className="text-xs text-gray-500">Full Name</p>
-                <p className="text-sm font-medium">{profile?.fullName}</p>
+                <p className="text-sm font-medium">{profile.fullName}</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
               <Mail className="w-5 h-5 text-gray-400" />
               <div>
                 <p className="text-xs text-gray-500">Email Address</p>
-                <p className="text-sm font-medium">{profile?.email}</p>
+                <p className="text-sm font-medium">{profile.email}</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
@@ -144,10 +186,11 @@ const InstructorProfile: React.FC = () => {
                     type="tel"
                     value={formData.phoneNumber}
                     onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
-                    className="text-sm border rounded px-2 py-1 w-full"
+                    className="text-sm border rounded px-2 py-1 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter phone number"
                   />
                 ) : (
-                  <p className="text-sm font-medium">{profile?.phoneNumber || 'Not provided'}</p>
+                  <p className="text-sm font-medium">{profile.phoneNumber || 'Not provided'}</p>
                 )}
               </div>
             </div>
@@ -155,21 +198,21 @@ const InstructorProfile: React.FC = () => {
               <Briefcase className="w-5 h-5 text-gray-400" />
               <div>
                 <p className="text-xs text-gray-500">Designation</p>
-                <p className="text-sm font-medium">{profile?.designation || 'Not specified'}</p>
+                <p className="text-sm font-medium">{profile.designation || 'Not specified'}</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
               <Award className="w-5 h-5 text-gray-400" />
               <div>
                 <p className="text-xs text-gray-500">Qualification</p>
-                <p className="text-sm font-medium">{profile?.qualification || 'Not specified'}</p>
+                <p className="text-sm font-medium">{profile.qualification || 'Not specified'}</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
               <Building2 className="w-5 h-5 text-gray-400" />
               <div>
                 <p className="text-xs text-gray-500">Department</p>
-                <p className="text-sm font-medium">{profile?.department}</p>
+                <p className="text-sm font-medium">{profile.department || 'Not assigned'}</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
@@ -177,7 +220,7 @@ const InstructorProfile: React.FC = () => {
               <div>
                 <p className="text-xs text-gray-500">Joined</p>
                 <p className="text-sm font-medium">
-                  {profile?.joiningDate ? new Date(profile.joiningDate).toLocaleDateString() : 'N/A'}
+                  {profile.joiningDate ? new Date(profile.joiningDate).toLocaleDateString() : 'N/A'}
                 </p>
               </div>
             </div>
@@ -190,10 +233,28 @@ const InstructorProfile: React.FC = () => {
                     type="text"
                     value={formData.officeLocation}
                     onChange={(e) => setFormData({...formData, officeLocation: e.target.value})}
-                    className="text-sm border rounded px-2 py-1 w-full"
+                    className="text-sm border rounded px-2 py-1 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter office location"
                   />
                 ) : (
-                  <p className="text-sm font-medium">{profile?.officeLocation || 'Not provided'}</p>
+                  <p className="text-sm font-medium">{profile.officeLocation || 'Not provided'}</p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center space-x-3 md:col-span-2">
+              <Building2 className="w-5 h-5 text-gray-400" />
+              <div className="flex-1">
+                <p className="text-xs text-gray-500">Address</p>
+                {isEditing ? (
+                  <textarea
+                    value={formData.address}
+                    onChange={(e) => setFormData({...formData, address: e.target.value})}
+                    className="text-sm border rounded px-2 py-1 w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    rows={2}
+                    placeholder="Enter your address"
+                  />
+                ) : (
+                  <p className="text-sm font-medium">{profile.address || 'Not provided'}</p>
                 )}
               </div>
             </div>

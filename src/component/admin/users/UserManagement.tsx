@@ -17,6 +17,21 @@ interface User {
   createdAt: string;
 }
 
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
@@ -35,37 +50,42 @@ const UserManagement: React.FC = () => {
     filterUsers();
   }, [searchTerm, selectedRole, users]);
 
-  const fetchUsers = async () => {
-    setIsLoading(true);
-    try {
-      // Fetch ALL user types
-      const [instructorsResult, adminsResult, managementResult] = await Promise.all([
-        registrationApi.getAllInstructors(),
-        // Add these API calls if they exist, or create them
-        registrationApi.getAcademicAdministrators?.() || Promise.resolve({ success: true, data: [] }),
-        registrationApi.getManagementStaff?.() || Promise.resolve({ success: true, data: [] }),
-      ]);
-      
-      let allUsers: User[] = [];
-      
-      if (instructorsResult.success) {
-        allUsers = [...allUsers, ...instructorsResult.data];
-      }
-      if (adminsResult.success) {
-        allUsers = [...allUsers, ...adminsResult.data];
-      }
-      if (managementResult.success) {
-        allUsers = [...allUsers, ...managementResult.data];
-      }
-      
-      setUsers(allUsers);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      toast.error('Failed to load users');
-    } finally {
-      setIsLoading(false);
+const fetchUsers = async () => {
+  setIsLoading(true);
+  try {
+    // Fetch ALL user types - await each promise separately
+    const instructorsResult = await registrationApi.getAllInstructors() as ApiResponse<User[]>;
+    const adminsResult = await (registrationApi.getAcademicAdministrators?.() || Promise.resolve({ success: true, data: [] })) as ApiResponse<User[]>;
+    const managementResult = await (registrationApi.getManagementStaff?.() || Promise.resolve({ success: true, data: [] })) as ApiResponse<User[]>;
+    
+    let allUsers: User[] = [];
+    
+    if (instructorsResult.success && 'data' in instructorsResult && Array.isArray(instructorsResult.data)) {
+      allUsers = [...allUsers, ...instructorsResult.data];
+    } else if (!instructorsResult.success && 'message' in instructorsResult) {
+      toast.error(instructorsResult.message);
     }
-  };
+    
+    if (adminsResult.success && 'data' in adminsResult && Array.isArray(adminsResult.data)) {
+      allUsers = [...allUsers, ...adminsResult.data];
+    } else if (!adminsResult.success && 'message' in adminsResult) {
+      toast.error(adminsResult.message);
+    }
+    
+    if (managementResult.success && 'data' in managementResult && Array.isArray(managementResult.data)) {
+      allUsers = [...allUsers, ...managementResult.data];
+    } else if (!managementResult.success && 'message' in managementResult) {
+      toast.error(managementResult.message);
+    }
+    
+    setUsers(allUsers);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    toast.error('Failed to load users');
+  } finally {
+    setIsLoading(false);
+  }
+};
   const filterUsers = () => {
     let filtered = [...users];
     
@@ -86,23 +106,27 @@ const UserManagement: React.FC = () => {
 
   const handleDeactivate = async (id: number) => {
     if (window.confirm('Are you sure you want to deactivate this user?')) {
-      const result = await registrationApi.deactivateStudent(id);
+      const result = await registrationApi.deactivateUser(id) as ApiResponse;
       if (result.success) {
         toast.success('User deactivated successfully');
         fetchUsers();
-      } else {
+      } else if (!result.success && 'message' in result) {
         toast.error(result.message);
+      } else {
+        toast.error('Failed to deactivate user');
       }
     }
   };
 
   const handleActivate = async (id: number) => {
-    const result = await registrationApi.activateStudent(id);
+    const result = await registrationApi.activateUser(id) as ApiResponse;
     if (result.success) {
       toast.success('User activated successfully');
       fetchUsers();
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to activate user');
     }
   };
 
@@ -163,75 +187,82 @@ const UserManagement: React.FC = () => {
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
+        ) : filteredUsers.length === 0 ? (
+          <div className="text-center py-12">
+            <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500">No users found</p>
+          </div>
         ) : (
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Department</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm text-gray-900">{user.userId}</td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{user.fullName}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                      user.role === 'ADMIN' ? 'bg-red-100 text-red-800' :
-                      user.role === 'INSTRUCTOR' ? 'bg-green-100 text-green-800' :
-                      user.role === 'STUDENT' ? 'bg-blue-100 text-blue-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{user.department || '-'}</td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${
-                      user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {user.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleViewDetails(user)}
-                        className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                        title="View Details"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      {user.isActive ? (
-                        <button
-                          onClick={() => handleDeactivate(user.id)}
-                          className="p-1 text-yellow-600 hover:bg-yellow-50 rounded"
-                          title="Deactivate"
-                        >
-                          <UserX className="w-4 h-4" />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleActivate(user.id)}
-                          className="p-1 text-green-600 hover:bg-green-50 rounded"
-                          title="Activate"
-                        >
-                          <UserCheck className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Department</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {filteredUsers.map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm text-gray-900">{user.userId}</td>
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{user.fullName}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                        user.role === 'ADMIN' ? 'bg-red-100 text-red-800' :
+                        user.role === 'INSTRUCTOR' ? 'bg-green-100 text-green-800' :
+                        user.role === 'STUDENT' ? 'bg-blue-100 text-blue-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {user.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{user.department || '-'}</td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${
+                        user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {user.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleViewDetails(user)}
+                          className="p-1 text-blue-600 hover:bg-blue-50 rounded transition"
+                          title="View Details"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        {user.isActive ? (
+                          <button
+                            onClick={() => handleDeactivate(user.id)}
+                            className="p-1 text-yellow-600 hover:bg-yellow-50 rounded transition"
+                            title="Deactivate"
+                          >
+                            <UserX className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleActivate(user.id)}
+                            className="p-1 text-green-600 hover:bg-green-50 rounded transition"
+                            title="Activate"
+                          >
+                            <UserCheck className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
@@ -245,5 +276,8 @@ const UserManagement: React.FC = () => {
     </div>
   );
 };
+
+// Import Users icon if not already imported
+import { Users } from 'lucide-react';
 
 export default UserManagement;

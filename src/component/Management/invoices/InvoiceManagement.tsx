@@ -6,16 +6,58 @@ import toast from 'react-hot-toast';
 import GenerateInvoiceModal from './GenerateInvoiceModal';
 import InvoiceDetailsModal from './InvoiceDetailsModal';
 
+interface Invoice {
+  id: number;
+  invoiceNumber: string;
+  studentId: number;
+  studentName: string;
+  studentIdNumber: string; 
+  totalAmount: number;
+  paidAmount: number;
+  dueAmount: number;
+  semester: string;
+  academicYear: number;
+  issueDate: string;
+  dueDate: string;
+  status: string;
+  items?: any[];
+}
+
+interface Student {
+  id: number;
+  fullName: string;
+  studentId: string;
+  email: string;
+  department: string;
+  faculty: string;
+  isActive: boolean;
+}
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const InvoiceManagement: React.FC = () => {
-  const [invoices, setInvoices] = useState<any[]>([]);
-  const [filteredInvoices, setFilteredInvoices] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [filteredInvoices, setFilteredInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
-  const [students, setStudents] = useState<any[]>([]);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [students, setStudents] = useState<Student[]>([]);
 
   const statuses = ['ALL', 'PAID', 'PENDING', 'PARTIAL', 'OVERDUE'];
 
@@ -30,14 +72,24 @@ const InvoiceManagement: React.FC = () => {
 
   const fetchInvoices = async () => {
     setIsLoading(true);
-    const result = await financeApi.getAllInvoices();
-    if (result.success) setInvoices(result.data);
+    const result = await financeApi.getAllInvoices() as ApiResponse<Invoice[]>;
+    if (result.success && 'data' in result) {
+      setInvoices(Array.isArray(result.data) ? result.data : []);
+    } else if (!result.success && 'message' in result) {
+      toast.error(result.message);
+    } else {
+      toast.error('Failed to fetch invoices');
+    }
     setIsLoading(false);
   };
 
   const fetchStudents = async () => {
-    const result = await registrationApi.getAllStudents();
-    if (result.success) setStudents(result.data);
+    const result = await registrationApi.getAllStudents() as ApiResponse<Student[]>;
+    if (result.success && 'data' in result) {
+      setStudents(Array.isArray(result.data) ? result.data : []);
+    } else if (!result.success && 'message' in result) {
+      toast.error(result.message);
+    }
   };
 
   const filterInvoices = () => {
@@ -54,14 +106,15 @@ const InvoiceManagement: React.FC = () => {
     setFilteredInvoices(filtered);
   };
 
-  const handleViewDetails = (invoice: any) => {
+  const handleViewDetails = (invoice: Invoice) => {
     setSelectedInvoice(invoice);
     setShowDetailsModal(true);
   };
 
-  const handleDownload = async (invoiceId: number, invoiceNumber: string) => {
-    const result = await financeApi.downloadInvoice(invoiceId);
-    if (result.success) {
+ const handleDownload = async (invoiceId: number, invoiceNumber: string) => {
+  try {
+    const result = await financeApi.downloadInvoice(invoiceId) as ApiResponse<Blob>;
+    if (result.success && 'data' in result) {
       const url = window.URL.createObjectURL(new Blob([result.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -69,13 +122,21 @@ const InvoiceManagement: React.FC = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(url);
       toast.success('Invoice downloaded successfully');
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to download invoice');
     }
+  } catch (error) {
+    console.error('Error downloading invoice:', error);
+    toast.error('Failed to download invoice');
+  }
+};
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'ETB' }).format(amount || 0);
   };
-
-  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'ETB' }).format(amount);
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
@@ -118,7 +179,9 @@ const InvoiceManagement: React.FC = () => {
           <div className="flex justify-between">
             <div>
               <p className="text-sm text-gray-500">Total Amount</p>
-              <p className="text-2xl font-bold text-green-600">{formatCurrency(invoices.reduce((sum, inv) => sum + inv.totalAmount, 0))}</p>
+              <p className="text-2xl font-bold text-green-600">
+                {formatCurrency(invoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0))}
+              </p>
             </div>
             <FileText className="w-8 h-8 text-green-500" />
           </div>
@@ -127,7 +190,9 @@ const InvoiceManagement: React.FC = () => {
           <div className="flex justify-between">
             <div>
               <p className="text-sm text-gray-500">Paid Amount</p>
-              <p className="text-2xl font-bold text-blue-600">{formatCurrency(invoices.reduce((sum, inv) => sum + inv.paidAmount, 0))}</p>
+              <p className="text-2xl font-bold text-blue-600">
+                {formatCurrency(invoices.reduce((sum, inv) => sum + (inv.paidAmount || 0), 0))}
+              </p>
             </div>
             <FileText className="w-8 h-8 text-blue-500" />
           </div>
@@ -136,7 +201,9 @@ const InvoiceManagement: React.FC = () => {
           <div className="flex justify-between">
             <div>
               <p className="text-sm text-gray-500">Outstanding</p>
-              <p className="text-2xl font-bold text-red-600">{formatCurrency(invoices.reduce((sum, inv) => sum + inv.dueAmount, 0))}</p>
+              <p className="text-2xl font-bold text-red-600">
+                {formatCurrency(invoices.reduce((sum, inv) => sum + (inv.dueAmount || 0), 0))}
+              </p>
             </div>
             <FileText className="w-8 h-8 text-red-500" />
           </div>
@@ -153,17 +220,20 @@ const InvoiceManagement: React.FC = () => {
               placeholder="Search by invoice number or student name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border rounded-lg"
+              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
             />
           </div>
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-4 py-2 border rounded-lg w-40"
+            className="px-4 py-2 border rounded-lg w-40 focus:ring-2 focus:ring-emerald-500"
           >
             {statuses.map(s => <option key={s} value={s}>{s === 'ALL' ? 'All Status' : s}</option>)}
           </select>
-          <button onClick={fetchInvoices} className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg">
+          <button 
+            onClick={fetchInvoices} 
+            className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+          >
             <RefreshCw className="w-4 h-4" />
           </button>
         </div>
@@ -174,6 +244,11 @@ const InvoiceManagement: React.FC = () => {
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+          </div>
+        ) : filteredInvoices.length === 0 ? (
+          <div className="text-center py-12">
+            <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500">No invoices found</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -208,14 +283,14 @@ const InvoiceManagement: React.FC = () => {
                       <div className="flex justify-center space-x-2">
                         <button
                           onClick={() => handleViewDetails(inv)}
-                          className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                          className="p-1 text-blue-600 hover:bg-blue-50 rounded transition"
                           title="View Details"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDownload(inv.id, inv.invoiceNumber)}
-                          className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"
+                          className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition"
                           title="Download PDF"
                         >
                           <Download className="w-4 h-4" />

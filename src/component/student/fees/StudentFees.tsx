@@ -16,10 +16,31 @@ interface Fee {
   dueDate: string;
 }
 
+interface FeeSummary {
+  totalFees: number;
+  totalPaid: number;
+  totalOutstanding: number;
+}
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const StudentFees: React.FC = () => {
   const { userId } = useAuth();
   const [fees, setFees] = useState<Fee[]>([]);
-  const [summary, setSummary] = useState<any>(null);
+  const [summary, setSummary] = useState<FeeSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedFee, setSelectedFee] = useState<Fee | null>(null);
@@ -34,11 +55,13 @@ const StudentFees: React.FC = () => {
   const fetchFees = async () => {
     setIsLoading(true);
     try {
-      const result = await financeApi.getStudentFees(userId!);
-      if (result.success) {
+      const result = await financeApi.getStudentFees(userId!) as ApiResponse<Fee[]>;
+      if (result.success && 'data' in result) {
         setFees(Array.isArray(result.data) ? result.data : []);
-      } else {
+      } else if (!result.success && 'message' in result) {
         toast.error(result.message || 'Failed to load fees');
+      } else {
+        toast.error('Failed to load fees');
       }
     } catch (error) {
       console.error('Error fetching fees:', error);
@@ -50,8 +73,8 @@ const StudentFees: React.FC = () => {
 
   const fetchSummary = async () => {
     try {
-      const result = await financeApi.getStudentFeeSummary(userId!);
-      if (result.success) {
+      const result = await financeApi.getStudentFeeSummary(userId!) as ApiResponse<FeeSummary>;
+      if (result.success && 'data' in result) {
         setSummary(result.data);
       }
     } catch (error) {
@@ -198,21 +221,8 @@ const StudentFees: React.FC = () => {
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-center">
-                      {fee.status !== 'PAID' && (
-                        <button
-                          onClick={() => {
-                            setSelectedFee(fee);
-                            setShowPaymentModal(true);
-                          }}
-                          className="inline-flex items-center px-3 py-1.5 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-700 transition"
-                        >
-                          <CreditCard className="w-3 h-3 mr-1" />
-                          Pay Now
-                        </button>
-                      )}
-                    </td>
-                  </tr>
+                    </tr>
+                   
                 ))}
               </tbody>
             </table>

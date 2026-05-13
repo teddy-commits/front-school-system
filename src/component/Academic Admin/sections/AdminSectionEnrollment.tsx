@@ -58,8 +58,23 @@ interface EnrolledStudent {
   status: string;
 }
 
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const AdminSectionEnrollment: React.FC = () => {
-  const { userEmail } = useAuth();
+  const { user } = useAuth(); // Changed from userEmail to user since AuthContext might not have userEmail
   const [sections, setSections] = useState<Section[]>([]);
   const [selectedSection, setSelectedSection] = useState<Section | null>(null);
   const [enrolledStudents, setEnrolledStudents] = useState<EnrolledStudent[]>([]);
@@ -92,37 +107,43 @@ const AdminSectionEnrollment: React.FC = () => {
 
   const fetchSections = async () => {
     setIsLoading(true);
-    const result = await sectionApi.getSectionsBySemester(selectedSemester, selectedYear);
-    if (result.success) {
-      setSections(result.data);
-    } else {
+    const result = await sectionApi.getSectionsBySemester(selectedSemester, selectedYear) as ApiResponse<Section[]>;
+    if (result.success && 'data' in result) {
+      setSections(Array.isArray(result.data) ? result.data : []);
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to fetch sections');
     }
     setIsLoading(false);
   };
 
   const fetchEnrolledStudents = async () => {
     if (!selectedSection) return;
-    const result = await enrollmentApi.getSectionEnrollments(selectedSection.id);
-    if (result.success) {
-      setEnrolledStudents(result.data);
-    } else {
+    const result = await enrollmentApi.getSectionEnrollments(selectedSection.id) as ApiResponse<EnrolledStudent[]>;
+    if (result.success && 'data' in result) {
+      setEnrolledStudents(Array.isArray(result.data) ? result.data : []);
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to fetch enrolled students');
     }
   };
 
   const fetchAvailableStudents = async () => {
-    const result = await registrationApi.getAllStudents();
-    if (result.success) {
+    const result = await registrationApi.getAllStudents() as ApiResponse<Student[]>;
+    if (result.success && 'data' in result && Array.isArray(result.data)) {
       // Filter out students already enrolled in this section
       const enrolledIds = enrolledStudents.map(s => s.studentId);
       const available = result.data.filter(
-        (student: any) => !enrolledIds.includes(student.id) && student.isActive
+        (student: Student) => !enrolledIds.includes(student.id) && student.isActive
       );
       setAvailableStudents(available);
       setFilteredAvailableStudents(available);
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to fetch available students');
     }
   };
 
@@ -146,39 +167,42 @@ const AdminSectionEnrollment: React.FC = () => {
     setFilteredAvailableStudents(filtered);
   };
 
-  const handleAddStudent = async (studentId: number) => {
-    if (!selectedSection) return;
-    
-    setIsLoading(true);
-    
-    // ✅ FIX: Pass individual arguments, NOT an object
-    const result = await enrollmentApi.enrollInSection(
-      studentId,              // 1st: number
-      selectedSection.id,     // 2nd: number
-      selectedSemester,       // 3rd: string - "FALL"
-      selectedYear            // 4th: number - 2026
-    );
-    
-    if (result.success) {
-      toast.success('Student added to section successfully');
-      fetchEnrolledStudents();
-      setShowAddModal(false);
-      setSearchTerm('');
-    } else {
-      toast.error(result.message);
-    }
-    setIsLoading(false);
-  };
-
+const handleAddStudent = async (studentId: number) => {
+  if (!selectedSection) return;
+  
+  setIsLoading(true);
+  
+  // ✅ FIX: Pass an object, not 4 separate arguments
+  const result = await enrollmentApi.enrollInSection({
+    studentId: studentId,
+    sectionId: selectedSection.id,
+    semester: selectedSemester,
+    academicYear: selectedYear
+  }) as ApiResponse;
+  
+  if (result.success) {
+    toast.success('Student added to section successfully');
+    fetchEnrolledStudents();
+    setShowAddModal(false);
+    setSearchTerm('');
+  } else if (!result.success && 'message' in result) {
+    toast.error(result.message);
+  } else {
+    toast.error('Failed to add student');
+  }
+  setIsLoading(false);
+};
   const handleRemoveStudent = async (enrollmentId: number, studentName: string) => {
     if (window.confirm(`Remove ${studentName} from this section?`)) {
-      const result = await enrollmentApi.dropSection(enrollmentId);
+      const result = await enrollmentApi.dropSection(enrollmentId) as ApiResponse;
       if (result.success) {
         toast.success('Student removed from section');
         fetchEnrolledStudents();
         fetchAvailableStudents();
-      } else {
+      } else if (!result.success && 'message' in result) {
         toast.error(result.message);
+      } else {
+        toast.error('Failed to remove student');
       }
     }
   };
@@ -226,20 +250,20 @@ const AdminSectionEnrollment: React.FC = () => {
           <select
             value={selectedSemester}
             onChange={(e) => setSelectedSemester(e.target.value)}
-            className="px-4 py-2 border rounded-lg"
+            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
           >
             {semesters.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-            className="px-4 py-2 border rounded-lg"
+            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"
           >
             {years.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
           <button
             onClick={fetchSections}
-            className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
+            className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -383,7 +407,7 @@ const AdminSectionEnrollment: React.FC = () => {
                       <td className="px-6 py-4 text-center">
                         <button
                           onClick={() => handleRemoveStudent(student.id, student.studentName)}
-                          className="p-1 text-red-600 hover:bg-red-50 rounded"
+                          className="p-1 text-red-600 hover:bg-red-50 rounded transition"
                           title="Remove Student"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -421,7 +445,7 @@ const AdminSectionEnrollment: React.FC = () => {
                   {selectedSection?.courseCode} - Section {selectedSection?.sectionCode}
                 </p>
               </div>
-              <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600 transition">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -442,7 +466,7 @@ const AdminSectionEnrollment: React.FC = () => {
                 <select
                   value={selectedYearLevel}
                   onChange={(e) => setSelectedYearLevel(e.target.value)}
-                  className="px-4 py-2 border rounded-lg w-40"
+                  className="px-4 py-2 border rounded-lg w-40 focus:ring-2 focus:ring-indigo-500"
                 >
                   {yearLevels.map(level => (
                     <option key={level} value={level}>{level === 'ALL' ? 'All Years' : `Year ${level}`}</option>

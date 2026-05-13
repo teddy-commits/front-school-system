@@ -22,6 +22,48 @@ interface ReportData {
   enrollmentRate: number;
 }
 
+interface UserStats {
+  totalStudents: number;
+  totalInstructors: number;
+  totalStaff: number;
+  totalUsers: number;
+}
+
+interface FinancialReport {
+  totalPaymentsReceived: number;
+  totalTransactions: number;
+  revenueByCategory?: Record<string, number>;
+}
+
+interface Course {
+  id: number;
+  courseCode: string;
+  courseName: string;
+  credits: number;
+}
+
+interface Student {
+  id: number;
+  studentId: string;
+  fullName: string;
+  email: string;
+}
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const ReportsDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [reportType, setReportType] = useState('daily');
@@ -30,9 +72,9 @@ const ReportsDashboard: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedSemester, setSelectedSemester] = useState('FALL');
   const [selectedDepartment, setSelectedDepartment] = useState('ALL');
-  const [reportData, setReportData] = useState<any>(null);
-  const [financialReport, setFinancialReport] = useState<any>(null);
-  const [userStats, setUserStats] = useState<any>(null);
+  const [reportData, setReportData] = useState<ReportData | null>(null);
+  const [financialReport, setFinancialReport] = useState<FinancialReport | null>(null);
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [departments, setDepartments] = useState<string[]>([]);
 
   const semesters = ['FALL', 'SPRING', 'SUMMER'];
@@ -48,9 +90,11 @@ const ReportsDashboard: React.FC = () => {
   }, [reportType, selectedDate, selectedMonth, selectedYear, selectedSemester, selectedDepartment]);
 
   const fetchUserStatistics = async () => {
-    const result = await registrationApi.getUserStatistics();
-    if (result.success) {
+    const result = await registrationApi.getUserStatistics() as ApiResponse<UserStats>;
+    if (result.success && 'data' in result) {
       setUserStats(result.data);
+    } else if (!result.success && 'message' in result) {
+      toast.error(result.message);
     }
   };
 
@@ -64,36 +108,37 @@ const ReportsDashboard: React.FC = () => {
   const generateReport = async () => {
     setIsLoading(true);
     try {
-      let result;
+      let result: ApiResponse<FinancialReport>;
       
       switch (reportType) {
         case 'daily':
-          result = await financeApi.getDailyReport(selectedDate);
+          result = await financeApi.getDailyReport(selectedDate) as ApiResponse<FinancialReport>;
           break;
         case 'monthly':
-          result = await financeApi.getMonthlyReport(selectedYear, selectedMonth);
+          result = await financeApi.getMonthlyReport(selectedYear, selectedMonth) as ApiResponse<FinancialReport>;
           break;
         case 'semester':
-          result = await financeApi.getSemesterReport(selectedSemester, selectedYear);
+          result = await financeApi.getSemesterReport(selectedSemester, selectedYear) as ApiResponse<FinancialReport>;
           break;
-           default:
-        const defaultDate = `${selectedDate}T00:00:00`;
-        result = await financeApi.getDailyReport(defaultDate);
-    }
+        default:
+          const defaultDate = `${selectedDate}T00:00:00`;
+          result = await financeApi.getDailyReport(defaultDate) as ApiResponse<FinancialReport>;
+      }
       
-      if (result.success) {
+      if (result.success && 'data' in result) {
         setFinancialReport(result.data);
+      } else if (!result.success && 'message' in result) {
+        toast.error(result.message);
       }
       
       // Fetch additional statistics
-      const studentsResult = await registrationApi.getAllStudents();
-      const coursesResult = await courseApi.getAllCourses();
-      const gradesResult = await gradeApi.getCourseGrades('ALL'); // This would need adjustment
+      const studentsResult = await registrationApi.getAllStudents() as ApiResponse<Student[]>;
+      const coursesResult = await courseApi.getAllCourses() as ApiResponse<Course[]>;
       
       const reportStats: ReportData = {
-        totalStudents: studentsResult.success ? studentsResult.data.length : 0,
+        totalStudents: (studentsResult.success && 'data' in studentsResult && Array.isArray(studentsResult.data)) ? studentsResult.data.length : 0,
         totalInstructors: userStats?.totalInstructors || 0,
-        totalCourses: coursesResult.success ? coursesResult.data.length : 0,
+        totalCourses: (coursesResult.success && 'data' in coursesResult && Array.isArray(coursesResult.data)) ? coursesResult.data.length : 0,
         totalRevenue: financialReport?.totalPaymentsReceived || 0,
         totalPayments: financialReport?.totalTransactions || 0,
         averageGrade: 3.2,
@@ -119,7 +164,7 @@ const ReportsDashboard: React.FC = () => {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'ETB' }).format(amount || 0);
   };
 
   return (
@@ -185,7 +230,7 @@ const ReportsDashboard: React.FC = () => {
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                className="px-3 py-2 border border-gray-300 rounded-lg"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
                 {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                   <option key={m} value={m}>{new Date(2000, m - 1, 1).toLocaleString('default', { month: 'long' })}</option>
@@ -194,7 +239,7 @@ const ReportsDashboard: React.FC = () => {
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                className="px-3 py-2 border border-gray-300 rounded-lg"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
                 {years.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
@@ -206,14 +251,14 @@ const ReportsDashboard: React.FC = () => {
               <select
                 value={selectedSemester}
                 onChange={(e) => setSelectedSemester(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
                 {semesters.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                className="px-3 py-2 border border-gray-300 rounded-lg"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
                 {years.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
@@ -224,7 +269,7 @@ const ReportsDashboard: React.FC = () => {
             <select
               value={selectedDepartment}
               onChange={(e) => setSelectedDepartment(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg w-64"
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 w-64"
             >
               <option value="ALL">All Departments</option>
               {departments.map(d => <option key={d} value={d}>{d}</option>)}
@@ -369,7 +414,7 @@ const ReportsDashboard: React.FC = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Amount (ETB)</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Percentage</th>
                   </tr>
                 </thead>
@@ -416,7 +461,7 @@ const ReportsDashboard: React.FC = () => {
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Transaction ID</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount (ETB)</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Method</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>

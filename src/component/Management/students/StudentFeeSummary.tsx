@@ -5,10 +5,38 @@ import { registrationApi } from '../../../api/modules/registrationApi';
 import toast from 'react-hot-toast';
 import StudentFeesView from '../fees/StudentFeesView';
 
+interface Student {
+  id: number;
+  studentId: string;
+  fullName: string;
+  email: string;
+  department: string;
+  faculty: string;
+  enrollmentYear: number;
+  isActive: boolean;
+  phoneNumber?: string;
+  address?: string;
+}
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const StudentFeeSummary: React.FC = () => {
-  const [students, setStudents] = useState<any[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedStudentForView, setSelectedStudentForView] = useState<any>(null);
+  const [selectedStudentForView, setSelectedStudentForView] = useState<Student | null>(null);
   const [isSearching, setIsSearching] = useState(false);
 
   const searchStudents = async () => {
@@ -17,14 +45,19 @@ const StudentFeeSummary: React.FC = () => {
       return;
     }
     setIsSearching(true);
-    const result = await registrationApi.searchStudents(searchTerm);
-    if (result.success) {
-      setStudents(result.data);
+    const result = await registrationApi.searchStudents(searchTerm) as ApiResponse<Student[]>;
+    if (result.success && 'data' in result) {
+      setStudents(Array.isArray(result.data) ? result.data : []);
       if (result.data.length === 0) {
-        toast.info('No students found');
+        toast('No students found', {
+          icon: 'ℹ️',
+          duration: 3000,
+        });
       }
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to search students');
     }
     setIsSearching(false);
   };

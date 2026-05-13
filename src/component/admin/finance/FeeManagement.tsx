@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Plus, Edit, Trash2, Search, DollarSign, 
-  RefreshCw, X, CheckCircle, AlertCircle,Banknote
+  RefreshCw, X, CheckCircle, AlertCircle, Banknote
 } from 'lucide-react';
 import { financeApi } from '../../../api/modules/financeApi';
 import { registrationApi } from '../../../api/modules/registrationApi';
@@ -24,6 +24,28 @@ interface FeeStructure {
   isActive: boolean;
 }
 
+interface Student {
+  id: number;
+  fullName: string;
+  studentId: string;
+  email: string;
+}
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const FeeManagement: React.FC = () => {
   const [feeStructures, setFeeStructures] = useState<FeeStructure[]>([]);
   const [filteredFees, setFilteredFees] = useState<FeeStructure[]>([]);
@@ -33,7 +55,7 @@ const FeeManagement: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedFee, setSelectedFee] = useState<FeeStructure | null>(null);
-  const [students, setStudents] = useState<any[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
 
   const feeTypes = ['ALL', 'TUITION', 'REGISTRATION', 'LIBRARY', 'LABORATORY', 'SPORTS', 'EXAMINATION', 'ID_CARD'];
@@ -47,55 +69,55 @@ const FeeManagement: React.FC = () => {
     filterFees();
   }, [searchTerm, selectedType, feeStructures]);
 
- const fetchFeeStructures = async () => {
-  setIsLoading(true);
-  try {
-    console.log('Fetching fee structures...');
-    const result = await financeApi.getAllFeeStructures();
-    console.log('API Response:', result);
-    
-    if (result.success) {
-      // Check what data structure is returned
-      console.log('Data received:', result.data);
-      console.log('Is data an array?', Array.isArray(result.data));
-      console.log('Data type:', typeof result.data);
+  const fetchFeeStructures = async () => {
+    setIsLoading(true);
+    try {
+      console.log('Fetching fee structures...');
+      const result = await financeApi.getAllFeeStructures() as ApiResponse<any>;
+      console.log('API Response:', result);
       
-      // Handle different response structures
-      let feeData = [];
-      if (Array.isArray(result.data)) {
-        feeData = result.data;
-      } else if (result.data && typeof result.data === 'object') {
-        // If response is an object with a content or items property
-        if (result.data.content && Array.isArray(result.data.content)) {
-          feeData = result.data.content;
-        } else if (result.data.items && Array.isArray(result.data.items)) {
-          feeData = result.data.items;
-        } else {
-          console.warn('Unexpected data structure:', result.data);
-          feeData = [];
+      if (result.success && 'data' in result) {
+        console.log('Data received:', result.data);
+        console.log('Is data an array?', Array.isArray(result.data));
+        console.log('Data type:', typeof result.data);
+        
+        let feeData: FeeStructure[] = [];
+        if (Array.isArray(result.data)) {
+          feeData = result.data;
+        } else if (result.data && typeof result.data === 'object') {
+          if (result.data.content && Array.isArray(result.data.content)) {
+            feeData = result.data.content;
+          } else if (result.data.items && Array.isArray(result.data.items)) {
+            feeData = result.data.items;
+          } else {
+            console.warn('Unexpected data structure:', result.data);
+            feeData = [];
+          }
         }
+        
+        setFeeStructures(feeData);
+        toast.success(`Loaded ${feeData.length} fee structures`);
+      } else if (!result.success && 'message' in result) {
+        console.error('API Error:', result.message);
+        toast.error(result.message || 'Failed to load fee structures');
+        setFeeStructures([]);
+      } else {
+        toast.error('Failed to load fee structures');
+        setFeeStructures([]);
       }
-      
-      setFeeStructures(feeData);
-      toast.success(`Loaded ${feeData.length} fee structures`);
-    } else {
-      console.error('API Error:', result.message);
-      toast.error(result.message || 'Failed to load fee structures');
+    } catch (error) {
+      console.error('Error fetching fee structures:', error);
+      toast.error('Failed to load fee structures');
       setFeeStructures([]);
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error('Error fetching fee structures:', error);
-    toast.error('Failed to load fee structures');
-    setFeeStructures([]);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   const fetchStudents = async () => {
     try {
-      const result = await registrationApi.getAllStudents();
-      if (result.success) {
+      const result = await registrationApi.getAllStudents() as ApiResponse<Student[]>;
+      if (result.success && 'data' in result) {
         setStudents(Array.isArray(result.data) ? result.data : []);
       }
     } catch (error) {
@@ -104,7 +126,6 @@ const FeeManagement: React.FC = () => {
   };
 
   const filterFees = () => {
-    // Ensure feeStructures is an array before spreading
     const feeArray = Array.isArray(feeStructures) ? feeStructures : [];
     let filtered = [...feeArray];
     
@@ -125,17 +146,19 @@ const FeeManagement: React.FC = () => {
 
   const handleDelete = async (id: number, description: string) => {
     if (window.confirm(`Delete fee structure "${description}"?`)) {
-      const result = await financeApi.deleteFeeStructure(id);
+      const result = await financeApi.deleteFeeStructure(id) as ApiResponse;
       if (result.success) {
         toast.success('Fee structure deleted');
         fetchFeeStructures();
-      } else {
+      } else if (!result.success && 'message' in result) {
         toast.error(result.message);
+      } else {
+        toast.error('Failed to delete fee structure');
       }
     }
   };
 
- const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { 
       style: 'currency', 
       currency: 'ETB',
@@ -153,19 +176,16 @@ const FeeManagement: React.FC = () => {
     }
   };
 
-  // Safely calculate total revenue
   const calculateTotalRevenue = () => {
     const feeArray = Array.isArray(feeStructures) ? feeStructures : [];
     return feeArray.reduce((sum, f) => sum + (f.amount || 0), 0);
   };
 
-  // Safely count mandatory fees
   const countMandatoryFees = () => {
     const feeArray = Array.isArray(feeStructures) ? feeStructures : [];
     return feeArray.filter(f => f.isMandatory).length;
   };
 
-  // Safely count active structures
   const countActiveStructures = () => {
     const feeArray = Array.isArray(feeStructures) ? feeStructures : [];
     return feeArray.filter(f => f.isActive).length;
@@ -403,7 +423,6 @@ const FeeManagement: React.FC = () => {
     </div>
   );
 };
-
 // Create Fee Structure Modal Component
 const CreateFeeStructureModal: React.FC<{ onClose: () => void; onSuccess: () => void }> = ({ onClose, onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -427,27 +446,30 @@ const CreateFeeStructureModal: React.FC<{ onClose: () => void; onSuccess: () => 
     setFormData({ ...formData, [e.target.name]: value });
   };
 
-// In CreateFeeStructureModal component, modify handleSubmit
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setIsLoading(true);
-  
-  // Format the dueDate to include time
-  const formattedData = {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    const formattedData = {
     ...formData,
-    dueDate: formData.dueDate ? `${formData.dueDate}T00:00:00` : null
+    dueDate: formData.dueDate ? `${formData.dueDate}T00:00:00` : ''  // Empty string instead of undefined
   };
   
-  const result = await financeApi.createFeeStructure(formattedData);
-  if (result.success) {
-    toast.success('Fee structure created');
-    onSuccess();
-    onClose();
-  } else {
-    toast.error(result.message);
-  }
-  setIsLoading(false);
-};
+    
+    const result = await financeApi.createFeeStructure(formattedData) as ApiResponse;
+    if (result.success) {
+      toast.success('Fee structure created');
+      onSuccess();
+      onClose();
+    } else if (!result.success && 'message' in result) {
+      toast.error(result.message);
+    } else {
+      toast.error('Failed to create fee structure');
+    }
+    setIsLoading(false);
+  };
+
+  
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -510,7 +532,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 };
 
 // Edit Fee Structure Modal
-const EditFeeStructureModal: React.FC<{ fee: any; onClose: () => void; onSuccess: () => void }> = ({ fee, onClose, onSuccess }) => {
+const EditFeeStructureModal: React.FC<{ fee: FeeStructure; onClose: () => void; onSuccess: () => void }> = ({ fee, onClose, onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     description: fee.description,
@@ -530,13 +552,15 @@ const EditFeeStructureModal: React.FC<{ fee: any; onClose: () => void; onSuccess
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    const result = await financeApi.updateFeeStructure(fee.id, formData);
+    const result = await financeApi.updateFeeStructure(fee.id, formData) as ApiResponse;
     if (result.success) {
       toast.success('Fee structure updated');
       onSuccess();
       onClose();
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to update fee structure');
     }
     setIsLoading(false);
   };
@@ -580,7 +604,7 @@ const EditFeeStructureModal: React.FC<{ fee: any; onClose: () => void; onSuccess
 };
 
 // Generate Student Fee Modal
-const GenerateStudentFeeModal: React.FC<{ students: any[]; feeStructures: any[]; onClose: () => void; onSuccess: () => void }> = ({ students, feeStructures, onClose, onSuccess }) => {
+const GenerateStudentFeeModal: React.FC<{ students: Student[]; feeStructures: FeeStructure[]; onClose: () => void; onSuccess: () => void }> = ({ students, feeStructures, onClose, onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     studentId: '',
@@ -589,18 +613,36 @@ const GenerateStudentFeeModal: React.FC<{ students: any[]; feeStructures: any[];
     academicYear: new Date().getFullYear()
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    const result = await financeApi.generateStudentFee(formData.studentId, formData.feeStructureId, formData.semester, formData.academicYear);
-    if (result.success) {
-      toast.success('Fee generated for student');
-      onSuccess();
-      onClose();
-    } else {
-      toast.error(result.message);
-    }
-    setIsLoading(false);
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  if (!formData.studentId || !formData.feeStructureId) {
+    toast.error('Please select both student and fee structure');
+    return;
+  }
+  
+  setIsLoading(true);
+  
+  const result = await financeApi.generateStudentFee(
+    parseInt(formData.studentId),      // Convert to number
+    parseInt(formData.feeStructureId), // Convert to number
+    formData.semester, 
+    formData.academicYear
+  ) as ApiResponse;
+  
+  if (result.success) {
+    toast.success('Fee generated for student');
+    onSuccess();
+    onClose();
+  } else if (!result.success && 'message' in result) {
+    toast.error(result.message);
+  } else {
+    toast.error('Failed to generate fee');
+  }
+  setIsLoading(false);
+};
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'ETB' }).format(amount || 0);
   };
 
   return (
@@ -649,11 +691,6 @@ const GenerateStudentFeeModal: React.FC<{ students: any[]; feeStructures: any[];
       </div>
     </div>
   );
-};
-
-// Helper function for currency formatting in modal
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
 };
 
 export default FeeManagement;

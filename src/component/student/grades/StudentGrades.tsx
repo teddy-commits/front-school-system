@@ -16,6 +16,21 @@ interface Grade {
   academicYear: number;
 }
 
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const StudentGrades: React.FC = () => {
   const { userId } = useAuth();
   const [grades, setGrades] = useState<Grade[]>([]);
@@ -33,8 +48,8 @@ const StudentGrades: React.FC = () => {
   const fetchGrades = async () => {
     setIsLoading(true);
     try {
-      const result = await gradeApi.getStudentGrades(userId!);
-      if (result.success) {
+      const result = await gradeApi.getStudentGrades(userId!) as ApiResponse<Grade[]>;
+      if (result.success && 'data' in result) {
         setGrades(result.data);
         // Group by semester
         const grouped = result.data.reduce((acc: Record<string, Grade[]>, grade: Grade) => {
@@ -44,8 +59,10 @@ const StudentGrades: React.FC = () => {
           return acc;
         }, {});
         setGroupedGrades(grouped);
-      } else {
+      } else if (!result.success && 'message' in result) {
         toast.error(result.message);
+      } else {
+        toast.error('Failed to load grades');
       }
     } catch (error) {
       console.error('Error fetching grades:', error);
@@ -57,8 +74,8 @@ const StudentGrades: React.FC = () => {
 
   const fetchCGPA = async () => {
     try {
-      const result = await gradeApi.getStudentCGPA(userId!);
-      if (result.success) {
+      const result = await gradeApi.getStudentCGPA(userId!) as ApiResponse<number>;
+      if (result.success && 'data' in result) {
         setCgpa(result.data);
       }
     } catch (error) {

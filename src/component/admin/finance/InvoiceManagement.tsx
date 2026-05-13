@@ -20,13 +20,36 @@ interface Invoice {
   status: string;
 }
 
+interface Student {
+  id: number;
+  fullName: string;
+  studentId: string;
+  email: string;
+  department: string;
+}
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const InvoiceManagement: React.FC = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [filteredInvoices, setFilteredInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
-  const [students, setStudents] = useState<any[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
 
   const statuses = ['ALL', 'PAID', 'PENDING', 'PARTIAL', 'OVERDUE'];
@@ -43,11 +66,13 @@ const InvoiceManagement: React.FC = () => {
   const fetchInvoices = async () => {
     setIsLoading(true);
     try {
-      const result = await financeApi.getAllInvoices();
-      if (result.success) {
+      const result = await financeApi.getAllInvoices() as ApiResponse<Invoice[]>;
+      if (result.success && 'data' in result) {
         setInvoices(Array.isArray(result.data) ? result.data : []);
-      } else {
+      } else if (!result.success && 'message' in result) {
         toast.error(result.message || 'Failed to load invoices');
+      } else {
+        toast.error('Failed to load invoices');
       }
     } catch (error) {
       console.error('Error fetching invoices:', error);
@@ -59,8 +84,10 @@ const InvoiceManagement: React.FC = () => {
 
   const fetchStudents = async () => {
     try {
-      const result = await registrationApi.getAllStudents();
-      if (result.success) setStudents(Array.isArray(result.data) ? result.data : []);
+      const result = await registrationApi.getAllStudents() as ApiResponse<Student[]>;
+      if (result.success && 'data' in result) {
+        setStudents(Array.isArray(result.data) ? result.data : []);
+      }
     } catch (error) { 
       console.error('Error fetching students:', error); 
     }
@@ -81,17 +108,19 @@ const InvoiceManagement: React.FC = () => {
   };
 
   const handleGenerateInvoice = async (studentId: number, semester: string, academicYear: number) => {
-    const result = await financeApi.generateInvoice(studentId, semester, academicYear);
+    const result = await financeApi.generateInvoice(studentId, semester, academicYear) as ApiResponse;
     if (result.success) { 
       toast.success('Invoice generated successfully'); 
       fetchInvoices(); 
       setShowGenerateModal(false); 
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message || 'Failed to generate invoice');
+    } else {
+      toast.error('Failed to generate invoice');
     }
   };
 
-  // ✅ UPDATED: Format as Ethiopian Birr (ETB)
+  // Format as Ethiopian Birr (ETB)
   const formatCurrency = (amount: number) => {
     return `ETB ${(amount || 0).toLocaleString('en-US', { 
       minimumFractionDigits: 2, 
@@ -203,7 +232,7 @@ const InvoiceManagement: React.FC = () => {
           <select 
             value={selectedStatus} 
             onChange={(e) => setSelectedStatus(e.target.value)} 
-            className="px-4 py-2 border rounded-lg w-40"
+            className="px-4 py-2 border rounded-lg w-40 focus:ring-2 focus:ring-blue-500"
           >
             {statuses.map(s => (
               <option key={s} value={s}>{s === 'ALL' ? 'All Status' : s}</option>
@@ -305,7 +334,7 @@ const InvoiceManagement: React.FC = () => {
 
 // Generate Invoice Modal
 const GenerateInvoiceModal: React.FC<{ 
-  students: any[]; 
+  students: Student[]; 
   onClose: () => void; 
   onGenerate: (studentId: number, semester: string, year: number) => void 
 }> = ({ students, onClose, onGenerate }) => {
@@ -330,7 +359,7 @@ const GenerateInvoiceModal: React.FC<{
       <div className="bg-white rounded-lg w-full max-w-md">
         <div className="flex justify-between items-center p-6 border-b">
           <h2 className="text-xl font-semibold">Generate Invoice (ETB)</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
             <span className="text-2xl">&times;</span>
           </button>
         </div>
@@ -382,7 +411,7 @@ const GenerateInvoiceModal: React.FC<{
             <button 
               onClick={handleGenerate} 
               disabled={isGenerating || !formData.studentId}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isGenerating ? 'Generating...' : 'Generate Invoice'}
             </button>

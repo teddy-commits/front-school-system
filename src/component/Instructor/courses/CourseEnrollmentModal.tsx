@@ -3,13 +3,46 @@ import { X, Users } from 'lucide-react';
 import { enrollmentApi } from '../../../api/modules/enrollmentApi';
 import toast from 'react-hot-toast';
 
+interface Course {
+  id: number;
+  courseCode: string;
+  courseName: string;
+  credits?: number;
+  sectionId?: number;
+}
+
+interface Enrollment {
+  id: number;
+  studentId: number;
+  studentName: string;
+  email: string;
+  enrollmentDate: string;
+  status: string;
+  studentIdNumber?: string;
+}
+
 interface CourseEnrollmentModalProps {
-  course: any;
+  course: Course;
   semester: string;
   academicYear: number;
   sectionId?: number;
   onClose: () => void;
 }
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
 
 const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({ 
   course, 
@@ -18,28 +51,29 @@ const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
   sectionId,
   onClose 
 }) => {
-  const [enrollments, setEnrollments] = useState<any[]>([]);
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchEnrollments();
-  }, [course.id, semester, academicYear, sectionId]); 
+  }, [course.id, semester, academicYear, sectionId]);
 
   const fetchEnrollments = async () => {
     setIsLoading(true);
     try {
-    
       const result = await enrollmentApi.getCourseEnrollments(
         course.id,     
         semester,       
         academicYear,
         sectionId     
-      );
+      ) as ApiResponse<Enrollment[]>;
       
-      if (result.success) {
-        setEnrollments(result.data);
-      } else {
+      if (result.success && 'data' in result) {
+        setEnrollments(Array.isArray(result.data) ? result.data : []);
+      } else if (!result.success && 'message' in result) {
         toast.error(result.message || 'Failed to load enrollments');
+      } else {
+        toast.error('Failed to load enrollments');
       }
     } catch (error) {
       console.error('Error fetching enrollments:', error);
@@ -52,14 +86,14 @@ const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-6 border-b">
+        <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-white">
           <div>
             <h2 className="text-xl font-semibold">Enrolled Students</h2>
             <p className="text-sm text-gray-500">
               {course.courseCode} - {course.courseName} | {semester} {academicYear}
             </p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -85,6 +119,7 @@ const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student Name</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student ID</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Enrolled Date</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                   </tr>
@@ -98,6 +133,9 @@ const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {enrollment.email || '-'}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-mono text-blue-600">
+                        {enrollment.studentIdNumber || '-'}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
                         {enrollment.enrollmentDate 
@@ -121,7 +159,7 @@ const CourseEnrollmentModal: React.FC<CourseEnrollmentModalProps> = ({
           )}
         </div>
 
-        <div className="flex justify-end p-6 border-t">
+        <div className="flex justify-end p-6 border-t bg-gray-50">
           <button
             onClick={onClose}
             className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"

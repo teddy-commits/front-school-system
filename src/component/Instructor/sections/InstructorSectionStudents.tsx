@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { enrollmentApi } from '../../../api/modules/enrollmentApi';
 import { sectionApi } from '../../../api/modules/sectionApi';
+import { gradeApi } from '../../../api/modules/gradeApi';
 import { 
   Users, 
   Search, 
@@ -13,7 +14,10 @@ import {
   ChevronLeft,
   Eye,
   FileText,
-  RefreshCw
+  RefreshCw,
+  Clock,
+  MapPin,
+  ChevronRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -50,8 +54,34 @@ interface Student {
   };
 }
 
+interface Grade {
+  id: number;
+  courseCode: string;
+  courseName: string;
+  credits: number;
+  score: number;
+  gradeLetter: string;
+  gradePoint: number;
+  semester: string;
+  academicYear: number;
+}
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const InstructorSectionStudents: React.FC = () => {
-  const { userEmail } = useAuth();
   const [sections, setSections] = useState<Section[]>([]);
   const [selectedSection, setSelectedSection] = useState<Section | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
@@ -76,11 +106,13 @@ const InstructorSectionStudents: React.FC = () => {
 
   const fetchMySections = async () => {
     setIsLoading(true);
-    const result = await sectionApi.getMySections(selectedSemester, selectedYear);
-    if (result.success) {
-      setSections(result.data);
-    } else {
+    const result = await sectionApi.getMySections(selectedSemester, selectedYear) as ApiResponse<Section[]>;
+    if (result.success && 'data' in result) {
+      setSections(Array.isArray(result.data) ? result.data : []);
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to fetch sections');
     }
     setIsLoading(false);
   };
@@ -89,31 +121,33 @@ const InstructorSectionStudents: React.FC = () => {
     setIsLoading(true);
     setSelectedSection(section);
     
-    const result = await enrollmentApi.getSectionEnrollments(section.id);
-    if (result.success) {
+    const result = await enrollmentApi.getSectionEnrollments(section.id) as ApiResponse<any[]>;
+    if (result.success && 'data' in result && Array.isArray(result.data)) {
       const studentsWithDetails = await Promise.all(
         result.data.map(async (enrollment: any) => {
           // Fetch grade for this student if available
           const gradeResult = await fetchStudentGrade(enrollment.studentId, section.courseCode);
           return {
             ...enrollment,
-            grade: gradeResult.success ? gradeResult.data : null
+            grade: gradeResult.success && gradeResult.data ? gradeResult.data : null
           };
         })
       );
       setStudents(studentsWithDetails);
       setFilteredStudents(studentsWithDetails);
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to fetch enrolled students');
     }
     setIsLoading(false);
   };
 
   const fetchStudentGrade = async (studentId: number, courseCode: string) => {
     try {
-      const result = await gradeApi.getStudentGrades(studentId);
-      if (result.success) {
-        const grade = result.data.find((g: any) => g.courseCode === courseCode);
+      const result = await gradeApi.getStudentGrades(studentId) as ApiResponse<Grade[]>;
+      if (result.success && 'data' in result && Array.isArray(result.data)) {
+        const grade = result.data.find((g: Grade) => g.courseCode === courseCode);
         return { success: true, data: grade };
       }
       return { success: false, data: null };
@@ -407,13 +441,13 @@ const InstructorSectionStudents: React.FC = () => {
                         <td className="px-6 py-4 text-center">
                           <button
                             onClick={() => handleViewStudent(student)}
-                            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                            className="p-1 text-blue-600 hover:bg-blue-50 rounded transition"
                             title="View Student Details"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
                         </td>
-                       </tr>
+                      </tr>
                     ))}
                   </tbody>
                 </table>
@@ -435,7 +469,7 @@ const InstructorSectionStudents: React.FC = () => {
           <div className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-white">
               <h2 className="text-xl font-semibold">Student Details</h2>
-              <button onClick={() => setShowStudentModal(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setShowStudentModal(false)} className="text-gray-400 hover:text-gray-600 transition">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -471,7 +505,7 @@ const InstructorSectionStudents: React.FC = () => {
               </div>
             </div>
             <div className="flex justify-end p-6 border-t">
-              <button onClick={() => setShowStudentModal(false)} className="px-4 py-2 bg-gray-100 rounded-lg">
+              <button onClick={() => setShowStudentModal(false)} className="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
                 Close
               </button>
             </div>

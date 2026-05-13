@@ -16,6 +16,21 @@ interface Payment {
   feeDescription: string;
 }
 
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const StudentPayments: React.FC = () => {
   const { userId } = useAuth();
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -30,11 +45,13 @@ const StudentPayments: React.FC = () => {
   const fetchPayments = async () => {
     setIsLoading(true);
     try {
-      const result = await financeApi.getStudentPayments(userId!);
-      if (result.success) {
+      const result = await financeApi.getStudentPayments(userId!) as ApiResponse<Payment[]>;
+      if (result.success && 'data' in result) {
         setPayments(Array.isArray(result.data) ? result.data : []);
-      } else {
+      } else if (!result.success && 'message' in result) {
         toast.error(result.message || 'Failed to load payment history');
+      } else {
+        toast.error('Failed to load payment history');
       }
     } catch (error) {
       console.error('Error fetching payments:', error);

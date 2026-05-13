@@ -13,9 +13,37 @@ import { registrationApi } from '../../api/modules/registrationApi';
 import RegistrationSessionManagement from '../Academic Admin/sessions/RegistrationSessionManagement';
 import DepartmentManagement from './departments/DepartmentManagement';
 
+interface DashboardStats {
+  totalStudents: number;
+  totalInstructors: number;
+  totalCourses: number;
+  totalRevenue: number;
+}
+
+interface UserStats {
+  totalStudents: number;
+  totalInstructors: number;
+  totalCourses?: number;
+  totalRevenue?: number;
+}
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
 
 const AdminDashboard: React.FC = () => {
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<DashboardStats>({
     totalStudents: 0,
     totalInstructors: 0,
     totalCourses: 0,
@@ -30,42 +58,43 @@ const AdminDashboard: React.FC = () => {
   }, []);
 
   const fetchStats = async () => {
-  try {
-    // Fetch user statistics from the API
-    const statsResult = await registrationApi.getUserStatistics();
-    
-    if (statsResult.success && statsResult.data) {
-      setStats({
-        totalStudents: statsResult.data.totalStudents || 0,
-        totalInstructors: statsResult.data.totalInstructors || 0,
-        totalCourses: statsResult.data.totalCourses || 45,
-        totalRevenue: statsResult.data.totalRevenue || 124567
-      });
-    } else {
-      // Fallback to individual API calls if statistics endpoint is not available
-      const studentsResult = await registrationApi.getAllStudents();
-      const instructorsResult = await registrationApi.getAllInstructers();
+    try {
+      // Fetch user statistics from the API
+      const statsResult = await registrationApi.getUserStatistics() as ApiResponse<UserStats>;
       
+      if (statsResult.success && 'data' in statsResult && statsResult.data) {
+        setStats({
+          totalStudents: statsResult.data.totalStudents || 0,
+          totalInstructors: statsResult.data.totalInstructors || 0,
+          totalCourses: statsResult.data.totalCourses || 45,
+          totalRevenue: statsResult.data.totalRevenue || 124567
+        });
+      } else {
+        // Fallback to individual API calls if statistics endpoint is not available
+        const studentsResult = await registrationApi.getAllStudents() as ApiResponse<any[]>;
+        const instructorsResult = await registrationApi.getAllInstructors() as ApiResponse<any[]>;
+        
+        setStats({
+          totalStudents: (studentsResult.success && 'data' in studentsResult && Array.isArray(studentsResult.data)) ? studentsResult.data.length : 0,
+          totalInstructors: (instructorsResult.success && 'data' in instructorsResult && Array.isArray(instructorsResult.data)) ? instructorsResult.data.length : 0,
+          totalCourses: 45,
+          totalRevenue: 124567
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+      // Set default values on error
       setStats({
-        totalStudents: studentsResult.success ? studentsResult.data.length : 0,
-        totalInstructors: instructorsResult.success ? instructorsResult.data.length : 0,
-        totalCourses: 45,
-        totalRevenue: 124567
+        totalStudents: 0,
+        totalInstructors: 0,
+        totalCourses: 0,
+        totalRevenue: 0
       });
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error('Error fetching stats:', error);
-    // Set default values on error
-    setStats({
-      totalStudents: 0,
-      totalInstructors: 0,
-      totalCourses: 0,
-      totalRevenue: 0
-    });
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
+
   const getPageTitle = () => {
     const path = location.pathname.split('/').pop();
     switch (path) {
@@ -76,9 +105,22 @@ const AdminDashboard: React.FC = () => {
       case 'payments': return 'Payment Management';
       case 'invoices': return 'Invoice Management';
       case 'reports': return 'Reports & Analytics';
+      case 'sessions': return 'Registration Sessions';
+      case 'departments': return 'Department Management';
       default: return 'Dashboard';
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen bg-gray-100">
+        <Sidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -222,7 +264,6 @@ const AdminDashboard: React.FC = () => {
             <Route path="reports" element={<ReportsDashboard />} />
             <Route path="sessions" element={<RegistrationSessionManagement />} />
             <Route path="departments" element={<DepartmentManagement />} />
-            
           </Routes>
         </main>
       </div>

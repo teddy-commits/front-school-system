@@ -4,11 +4,48 @@ import { financeApi } from '../../../api/modules/financeApi';
 import { useAuth } from '../../../context/AuthContext';
 import toast from 'react-hot-toast';
 
+interface Fee {
+  id: number;
+  feeType: string;
+  description: string;
+  amount: number;
+  paidAmount: number;
+  dueAmount: number;
+  status: string;
+  dueDate: string;
+}
+
 interface FeePaymentModalProps {
-  fee: any;
+  fee: Fee;
   onClose: () => void;
   onSuccess: () => void;
 }
+
+interface PaymentData {
+  studentId: number;  // Change to number (not optional)
+  feeId: number;
+  amount: number;
+  paymentMethod: string;
+  referenceNumber: string;
+  bankName: string;
+  mobileNumber: string;
+  remarks: string;
+}
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
 
 const FeePaymentModal: React.FC<FeePaymentModalProps> = ({ fee, onClose, onSuccess }) => {
   const { userId } = useAuth();
@@ -25,6 +62,12 @@ const FeePaymentModal: React.FC<FeePaymentModalProps> = ({ fee, onClose, onSucce
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate userId exists
+    if (!userId) {
+      toast.error('User not authenticated');
+      return;
+    }
+    
     // Validate amount
     if (formData.amount <= 0) {
       toast.error('Please enter a valid amount');
@@ -37,8 +80,8 @@ const FeePaymentModal: React.FC<FeePaymentModalProps> = ({ fee, onClose, onSucce
     
     setIsLoading(true);
 
-    const paymentData = {
-      studentId: userId,
+    const paymentData: PaymentData = {
+      studentId: userId, // userId is guaranteed to be a number here due to the check above
       feeId: fee.id,
       amount: formData.amount,
       paymentMethod: paymentMethod,
@@ -48,18 +91,20 @@ const FeePaymentModal: React.FC<FeePaymentModalProps> = ({ fee, onClose, onSucce
       remarks: formData.remarks
     };
 
-    const result = await financeApi.processPayment(paymentData);
+    const result = await financeApi.processPayment(paymentData) as ApiResponse;
     if (result.success) {
       toast.success('Payment processed successfully!');
       onSuccess();
       onClose();
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message || 'Payment failed');
+    } else {
+      toast.error('Payment failed. Please try again.');
     }
     setIsLoading(false);
   };
 
-  // ✅ UPDATED: Format as Ethiopian Birr (ETB)
+  // Format as Ethiopian Birr (ETB)
   const formatCurrency = (amount: number) => {
     return `ETB ${(amount || 0).toLocaleString('en-US', { 
       minimumFractionDigits: 2, 
@@ -83,7 +128,7 @@ const FeePaymentModal: React.FC<FeePaymentModalProps> = ({ fee, onClose, onSucce
       <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center p-6 border-b">
           <h2 className="text-xl font-semibold">Make Payment (ETB)</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
             <X className="w-5 h-5" />
           </button>
         </div>

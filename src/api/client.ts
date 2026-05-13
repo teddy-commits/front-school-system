@@ -1,21 +1,17 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-// API Configuration
-// For API calls (protected endpoints) - baseURL includes /api/v1
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
-// For Auth calls (login/logout) - baseURL is just the server root
 const AUTH_URL = import.meta.env.VITE_AUTH_URL || 'http://localhost:8080';
 const API_TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT || '30000');
 
-// Create axios instances
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: API_TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Important for CORS
+  withCredentials: true,
 });
 
 export const authClient = axios.create({
@@ -88,10 +84,11 @@ apiClient.interceptors.response.use(
 );
 
 // Helper function to handle API errors
-export const handleApiError = (error) => {
+// Replace your existing handleApiError function with this:
+export const handleApiError = (error: unknown) => {
   if (axios.isAxiosError(error)) {
     if (error.response) {
-      const data = error.response.data;
+      const data = error.response.data as { message?: string; error?: string };
       const message = data?.message || data?.error || 'An error occurred';
       return {
         success: false,
@@ -113,6 +110,7 @@ export const handleApiError = (error) => {
     status: 0,
   };
 };
+
 
 // Export types
 export type ApiResult<T> = {

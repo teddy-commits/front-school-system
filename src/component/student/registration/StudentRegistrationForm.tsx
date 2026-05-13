@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../../common/Header';
 import { Calendar, Clock, AlertCircle, XCircle, Info, Building2 } from 'lucide-react';
 
+// Define proper types
 interface Department {
   id: number;
   code: string;
@@ -15,12 +16,50 @@ interface Department {
   isActive: boolean;
 }
 
+interface SessionInfo {
+  id?: number;
+  semester: string;
+  academicYear: number;
+  startDate: string;
+  endDate: string;
+  isActive?: boolean;
+}
+
+interface NextSessionInfo {
+  startDate: string;
+  semester: string;
+  academicYear: number;
+}
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
+interface RegistrationStatusResponse {
+  isOpen: boolean;
+  session?: SessionInfo;
+  nextRegistrationStart?: string;
+  nextSemester?: string;
+  nextAcademicYear?: number;
+}
+
 const StudentRegistrationForm = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(false);
-  const [sessionInfo, setSessionInfo] = useState<any>(null);
-  const [nextSessionInfo, setNextSessionInfo] = useState<any>(null);
+  const [sessionInfo, setSessionInfo] = useState<SessionInfo | null>(null);
+  const [nextSessionInfo, setNextSessionInfo] = useState<NextSessionInfo | null>(null);
   const [checkingStatus, setCheckingStatus] = useState(true);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loadingDepartments, setLoadingDepartments] = useState(false);
@@ -48,10 +87,10 @@ const StudentRegistrationForm = () => {
 
   const fetchDepartments = async () => {
     setLoadingDepartments(true);
-    const result = await departmentApi.getActiveDepartments();
-    if (result.success) {
+    const result = await departmentApi.getActiveDepartments() as ApiResponse<Department[]>;
+    if (result.success && 'data' in result) {
       setDepartments(result.data);
-    } else {
+    } else if (!result.success && 'message' in result) {
       console.error('Failed to fetch departments:', result.message);
     }
     setLoadingDepartments(false);
@@ -59,8 +98,8 @@ const StudentRegistrationForm = () => {
 
   const checkRegistrationStatus = async () => {
     setCheckingStatus(true);
-    const result = await registrationSessionApi.checkRegistrationStatus();
-    if (result.success) {
+    const result = await registrationSessionApi.checkRegistrationStatus() as ApiResponse<RegistrationStatusResponse>;
+    if (result.success && 'data' in result) {
       setIsRegistrationOpen(result.data.isOpen);
       if (result.data.session) {
         setSessionInfo(result.data.session);
@@ -68,8 +107,8 @@ const StudentRegistrationForm = () => {
       if (result.data.nextRegistrationStart) {
         setNextSessionInfo({
           startDate: result.data.nextRegistrationStart,
-          semester: result.data.nextSemester,
-          academicYear: result.data.nextAcademicYear
+          semester: result.data.nextSemester || '',
+          academicYear: result.data.nextAcademicYear || 0
         });
       }
     }
@@ -100,8 +139,8 @@ const StudentRegistrationForm = () => {
     e.preventDefault();
     
     // Double check if registration is still open before submitting
-    const statusCheck = await registrationSessionApi.checkRegistrationStatus();
-    if (!statusCheck.success || !statusCheck.data.isOpen) {
+    const statusCheck = await registrationSessionApi.checkRegistrationStatus() as ApiResponse<RegistrationStatusResponse>;
+    if (!statusCheck.success || !('data' in statusCheck) || !statusCheck.data.isOpen) {
       toast.error('Registration has been closed. Please contact the administration.');
       setIsRegistrationOpen(false);
       return;
@@ -116,9 +155,9 @@ const StudentRegistrationForm = () => {
       enrollmentYear: parseInt(formData.enrollmentYear.toString())
     };
     
-    const result = await registrationApi.registerStudent(submitData);
+    const result = await registrationApi.registerStudent(submitData) as ApiResponse<{ message: string }>;
 
-    if (result.success) {
+    if (result.success && 'data' in result) {
       toast.success(result.data?.message || 'Registration successful!');
       setFormData({
         firstName: '',
@@ -139,8 +178,10 @@ const StudentRegistrationForm = () => {
       setTimeout(() => {
         navigate('/login/student');
       }, 2000);
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message || 'Registration failed');
+    } else {
+      toast.error('Registration failed. Please try again.');
     }
 
     setIsLoading(false);
@@ -489,7 +530,7 @@ const StudentRegistrationForm = () => {
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
-                  rows="2"
+                  rows={2}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Your address"
                 />

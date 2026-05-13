@@ -5,12 +5,19 @@ import toast from 'react-hot-toast';
 import AddInstructorModal from './AddInstructorModal';
 import AddCourseModal from './AddCourseModal';
 
-interface SectionDetailsModalProps {
-  section: any;
-  onClose: () => void;
-  onUpdate: () => void;
+interface Section {
+  id: number;
+  departmentCode: string;
+  departmentName: string;
+  sectionCode: string;
+  academicYearLevel: number;
+  semester: string;
+  academicYear: number;
+  maxStudents: number;
+  enrolledStudents: number;
+  status: string;
 }
-// Update the interface to match DTO
+
 interface Instructor {
   id: number;
   instructorId: number;
@@ -34,9 +41,31 @@ interface Course {
   room: string;
   addedAt: string;
 }
+
+interface SectionDetailsModalProps {
+  section: Section;
+  onClose: () => void;
+  onUpdate: () => void;
+}
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const SectionDetailsModal: React.FC<SectionDetailsModalProps> = ({ section, onClose, onUpdate }) => {
-  const [instructors, setInstructors] = useState<any[]>([]);
-  const [courses, setCourses] = useState<any[]>([]);
+  const [instructors, setInstructors] = useState<Instructor[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddInstructor, setShowAddInstructor] = useState(false);
   const [showAddCourse, setShowAddCourse] = useState(false);
@@ -54,42 +83,50 @@ const SectionDetailsModal: React.FC<SectionDetailsModalProps> = ({ section, onCl
     setIsLoading(false);
   };
 
-const fetchInstructors = async () => {
-  const result = await sectionApi.getSectionInstructors(section.id);
-  if (result.success) {
-    setInstructors(result.data);
-  }
-};
+  const fetchInstructors = async () => {
+    const result = await sectionApi.getSectionInstructors(section.id) as ApiResponse<Instructor[]>;
+    if (result.success && 'data' in result) {
+      setInstructors(Array.isArray(result.data) ? result.data : []);
+    } else if (!result.success && 'message' in result) {
+      toast.error(result.message);
+    }
+  };
 
- const fetchCourses = async () => {
-  const result = await sectionApi.getSectionCourses(section.id);
-  if (result.success) {
-    setCourses(result.data);
-  }
-};
+  const fetchCourses = async () => {
+    const result = await sectionApi.getSectionCourses(section.id) as ApiResponse<Course[]>;
+    if (result.success && 'data' in result) {
+      setCourses(Array.isArray(result.data) ? result.data : []);
+    } else if (!result.success && 'message' in result) {
+      toast.error(result.message);
+    }
+  };
 
   const handleRemoveInstructor = async (instructorId: number, instructorName: string) => {
     if (window.confirm(`Remove ${instructorName} from this section?`)) {
-      const result = await sectionApi.removeInstructorFromSection(instructorId);
+      const result = await sectionApi.removeInstructorFromSection(instructorId) as ApiResponse;
       if (result.success) {
         toast.success('Instructor removed from section');
         fetchInstructors();
         onUpdate();
-      } else {
+      } else if (!result.success && 'message' in result) {
         toast.error(result.message);
+      } else {
+        toast.error('Failed to remove instructor');
       }
     }
   };
 
   const handleRemoveCourse = async (courseId: number, courseName: string) => {
     if (window.confirm(`Remove ${courseName} from this section?`)) {
-      const result = await sectionApi.removeCourseFromSection(courseId);
+      const result = await sectionApi.removeCourseFromSection(courseId) as ApiResponse;
       if (result.success) {
         toast.success('Course removed from section');
         fetchCourses();
         onUpdate();
-      } else {
+      } else if (!result.success && 'message' in result) {
         toast.error(result.message);
+      } else {
+        toast.error('Failed to remove course');
       }
     }
   };
@@ -116,7 +153,7 @@ const fetchInstructors = async () => {
               {section.departmentCode} - Section {section.sectionCode} | Year {section.academicYearLevel}
             </p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -168,7 +205,7 @@ const fetchInstructors = async () => {
               {instructors.length < 7 && (
                 <button
                   onClick={() => setShowAddInstructor(true)}
-                  className="flex items-center px-3 py-1 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                  className="flex items-center px-3 py-1 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
                 >
                   <UserPlus className="w-4 h-4 mr-1" />
                   Add Instructor
@@ -185,50 +222,26 @@ const fetchInstructors = async () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-             // In the instructors list display
-{instructors.map((instructor) => (
-  <div key={instructor.id} className="bg-gray-50 rounded-lg p-3 flex justify-between items-center">
-    <div>
-      <p className="font-medium text-gray-900">{instructor.instructorName}</p>
-      <p className="text-sm text-gray-500">{instructor.instructorEmail}</p>
-      <p className="text-xs text-gray-400">{instructor.department}</p>
-      {instructor.courseCode && (
-        <p className="text-xs text-indigo-600 mt-1">
-          Teaches: {instructor.courseCode} - {instructor.courseName}
-        </p>
-      )}
-    </div>
-    <button
-      onClick={() => handleRemoveInstructor(instructor.id, instructor.instructorName)}
-      className="p-1 text-red-600 hover:bg-red-50 rounded"
-    >
-      <Trash2 className="w-4 h-4" />
-    </button>
-  </div>
-))}
-{courses.map((course) => (
-  <div key={course.id} className="bg-gray-50 rounded-lg p-3">
-    <div className="flex justify-between items-start">
-      <div className="flex-1">
-        <p className="font-medium text-gray-900">{course.courseCode} - {course.courseName}</p>
-        <p className="text-sm text-gray-500">Credits: {course.credits}</p>
-        <div className="flex items-center mt-2 text-sm text-gray-600">
-          <Calendar className="w-4 h-4 mr-1" />
-          <span>{course.schedule || 'Schedule TBA'}</span>
-          <MapPin className="w-4 h-4 ml-3 mr-1" />
-          <span>{course.room || 'Room TBA'}</span>
-        </div>
-      </div>
-      <button
-        onClick={() => handleRemoveCourse(course.id, course.courseName)}
-        className="p-1 text-red-600 hover:bg-red-50 rounded"
-      >
-        <Trash2 className="w-4 h-4" />
-      </button>
-    </div>
-  </div>
-))}
-
+                {instructors.map((instructor) => (
+                  <div key={instructor.id} className="bg-gray-50 rounded-lg p-3 flex justify-between items-center">
+                    <div>
+                      <p className="font-medium text-gray-900">{instructor.instructorName}</p>
+                      <p className="text-sm text-gray-500">{instructor.instructorEmail}</p>
+                      <p className="text-xs text-gray-400">{instructor.department}</p>
+                      {instructor.courseCode && (
+                        <p className="text-xs text-indigo-600 mt-1">
+                          Teaches: {instructor.courseCode} - {instructor.courseName}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleRemoveInstructor(instructor.id, instructor.instructorName)}
+                      className="p-1 text-red-600 hover:bg-red-50 rounded transition"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -243,7 +256,7 @@ const fetchInstructors = async () => {
               {courses.length < 7 && (
                 <button
                   onClick={() => setShowAddCourse(true)}
-                  className="flex items-center px-3 py-1 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                  className="flex items-center px-3 py-1 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
                 >
                   <Plus className="w-4 h-4 mr-1" />
                   Add Course
@@ -277,7 +290,7 @@ const fetchInstructors = async () => {
                       </div>
                       <button
                         onClick={() => handleRemoveCourse(course.id, course.courseName)}
-                        className="p-1 text-red-600 hover:bg-red-50 rounded"
+                        className="p-1 text-red-600 hover:bg-red-50 rounded transition"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -290,25 +303,23 @@ const fetchInstructors = async () => {
         </div>
 
         <div className="flex justify-end p-6 border-t">
-          <button onClick={onClose} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg">
+          <button onClick={onClose} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
             Close
           </button>
         </div>
       </div>
 
-    
-{showAddInstructor && (
-  <AddInstructorModal
-    sectionId={section.id}
-    sectionName={`${section.departmentCode} - Section ${section.sectionCode}`}
-    sectionCourses={courses}  // Pass the courses list
-    onClose={() => setShowAddInstructor(false)}
-    onSuccess={() => {
-      fetchInstructors();
-      onUpdate();
-    }}
-  />
-)}
+      {showAddInstructor && (
+        <AddInstructorModal
+          sectionId={section.id}
+          sectionName={`${section.departmentCode} - Section ${section.sectionCode}`}
+          onClose={() => setShowAddInstructor(false)}
+          onSuccess={() => {
+            fetchInstructors();
+            onUpdate();
+          }}
+        />
+      )}
 
       {showAddCourse && (
         <AddCourseModal

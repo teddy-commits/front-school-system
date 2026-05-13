@@ -8,107 +8,164 @@ import GradeSubmissionModal from './GradeSubmissionModal';
 import GradeEditModal from './GradeEditModal';
 import StudentGradesView from './StudentGradesView';
 
-interface GradeManagementProps {
-  assignedCourses: any[];
-  semester: string;      // ✅ Add
-  academicYear: number;  // ✅ Add
+interface AssignedCourse {
+  id: number;
+  courseCode: string;
+  courseName: string;
+  credits: number;
+  sectionId?: number;
+  sectionCode?: string;
 }
+
+interface Student {
+  id: number;
+  studentId: number;
+  studentIdNumber: string;
+  studentName: string;
+  email: string;
+  status: string;
+}
+
+interface Grade {
+  id: number;
+  studentId: number;
+  courseCode: string;
+  score: number;
+  gradeLetter: string;
+  gradePoint: number;
+}
+
+interface Enrollment {
+  id: number;
+  studentId: number;
+  studentIdNumber?: string;
+  studentName?: string;
+  fullName?: string;
+  email: string;
+  status: string;
+}
+
+interface GradeManagementProps {
+  assignedCourses: AssignedCourse[];
+  semester: string;
+  academicYear: number;
+}
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const GradeManagement: React.FC<GradeManagementProps> = ({ assignedCourses, semester, academicYear }) => {
-    console.log('🏗️ GradeManagement rendered with:', { assignedCourses, semester, academicYear });
+  console.log('🏗️ GradeManagement rendered with:', { assignedCourses, semester, academicYear });
   const [selectedCourse, setSelectedCourse] = useState<string>('');
-  const [students, setStudents] = useState<any[]>([]);
-  const [grades, setGrades] = useState<any[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [grades, setGrades] = useState<Grade[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState<any>(null);
-  const [selectedGrade, setSelectedGrade] = useState<any>(null);
-  const [currentCourse, setCurrentCourse] = useState<any>(null);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [selectedGrade, setSelectedGrade] = useState<Grade | null>(null);
+  const [currentCourse, setCurrentCourse] = useState<AssignedCourse | null>(null);
 
- // In GradeManagement.tsx, when fetching enrollments
-const fetchCourseData = async (courseCode: string) => {
-  if (!courseCode) {
-    console.log('❌ No course code provided');
-    return;
-  }
-  
-  setIsLoading(true);
-  try {
-    console.log('📚 Fetching data for course code:', courseCode);
-    console.log('📋 assignedCourses:', assignedCourses);
-    
-    // Find course
-    const course = assignedCourses.find(c => {
-      console.log('  Comparing:', c.courseCode, '===', courseCode);
-      return c.courseCode === courseCode;
-    });
-    
-    console.log('🎯 Found course:', course);
-    console.log('  course.id:', course?.id);
-    console.log('  course.sectionId:', course?.sectionId);
-    console.log('  semester:', semester);
-    console.log('  academicYear:', academicYear);
-    
-    if (!course) {
-      console.error('❌ Course not found in assignedCourses');
-      toast.error('Course not found');
-      setIsLoading(false);
+  const fetchCourseData = async (courseCode: string) => {
+    if (!courseCode) {
+      console.log('❌ No course code provided');
       return;
     }
     
-    // ✅ Call API
-    console.log('🔗 Calling API with:', {
-      courseId: course.id,
-      semester: semester,
-      academicYear: academicYear,
-      sectionId: course.sectionId
-    });
-    
-    const enrollmentsResult = await enrollmentApi.getCourseEnrollments(
-      course.id,
-      semester,
-      academicYear,
-      course.sectionId
-    );
-    
-    console.log('📨 API Response:', enrollmentsResult);
-    
-    if (enrollmentsResult.success) {
-      console.log('✅ Students data:', enrollmentsResult.data);
-      const mappedStudents = enrollmentsResult.data.map((enrollment: any) => ({
-        id: enrollment.id,
-        studentId: enrollment.studentId,
-        studentIdNumber: enrollment.studentIdNumber || enrollment.studentId,
-        studentName: enrollment.studentName || enrollment.fullName,
-        email: enrollment.email,
-        status: enrollment.status
-      }));
-      console.log('🔄 Mapped students:', mappedStudents);
-      setStudents(mappedStudents);
-    } else {
-      console.error('❌ API Error:', enrollmentsResult.message);
-      toast.error(enrollmentsResult.message || 'Failed to load students');
+    setIsLoading(true);
+    try {
+      console.log('📚 Fetching data for course code:', courseCode);
+      console.log('📋 assignedCourses:', assignedCourses);
+      
+      // Find course
+      const course = assignedCourses.find(c => {
+        console.log('  Comparing:', c.courseCode, '===', courseCode);
+        return c.courseCode === courseCode;
+      });
+      
+      console.log('🎯 Found course:', course);
+      console.log('  course.id:', course?.id);
+      console.log('  course.sectionId:', course?.sectionId);
+      console.log('  semester:', semester);
+      console.log('  academicYear:', academicYear);
+      
+      if (!course) {
+        console.error('❌ Course not found in assignedCourses');
+        toast.error('Course not found');
+        setIsLoading(false);
+        return;
+      }
+      
+      setCurrentCourse(course);
+      
+      // Call API
+      console.log('🔗 Calling API with:', {
+        courseId: course.id,
+        semester: semester,
+        academicYear: academicYear,
+        sectionId: course.sectionId
+      });
+      
+      const enrollmentsResult = await enrollmentApi.getCourseEnrollments(
+        course.id,
+        semester,
+        academicYear,
+        course.sectionId
+      ) as ApiResponse<Enrollment[]>;
+      
+      console.log('📨 API Response:', enrollmentsResult);
+      
+      if (enrollmentsResult.success && 'data' in enrollmentsResult && Array.isArray(enrollmentsResult.data)) {
+        console.log('✅ Students data:', enrollmentsResult.data);
+        const mappedStudents: Student[] = enrollmentsResult.data.map((enrollment: Enrollment) => ({
+          id: enrollment.id,
+          studentId: enrollment.studentId,
+          studentIdNumber: enrollment.studentIdNumber || String(enrollment.studentId),
+          studentName: enrollment.studentName || enrollment.fullName || 'Unknown',
+          email: enrollment.email,
+          status: enrollment.status
+        }));
+        console.log('🔄 Mapped students:', mappedStudents);
+        setStudents(mappedStudents);
+      } else if (!enrollmentsResult.success && 'message' in enrollmentsResult) {
+        console.error('❌ API Error:', enrollmentsResult.message);
+        toast.error(enrollmentsResult.message || 'Failed to load students');
+      } else {
+        toast.error('Failed to load students');
+      }
+      
+      // Fetch grades
+      console.log('📝 Fetching grades for:', courseCode);
+      const gradesResult = await gradeApi.getCourseGrades(courseCode) as ApiResponse<Grade[]>;
+      console.log('📝 Grades result:', gradesResult);
+      if (gradesResult.success && 'data' in gradesResult) {
+        setGrades(Array.isArray(gradesResult.data) ? gradesResult.data : []);
+      }
+    } catch (error) {
+      console.error('💥 Error:', error);
+      toast.error('Failed to load course data');
+    } finally {
+      setIsLoading(false);
     }
-    
-    // Fetch grades
-    console.log('📝 Fetching grades for:', courseCode);
-    const gradesResult = await gradeApi.getCourseGrades(courseCode);
-    console.log('📝 Grades result:', gradesResult);
-    if (gradesResult.success) {
-      setGrades(gradesResult.data);
-    }
-  } catch (error) {
-    console.error('💥 Error:', error);
-    toast.error('Failed to load course data');
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
+
   const handleCourseChange = (courseCode: string) => {
     setSelectedCourse(courseCode);
     const course = assignedCourses.find(c => c.courseCode === courseCode);
-    setCurrentCourse(course);
+    setCurrentCourse(course || null);
     fetchCourseData(courseCode);
   };
 
@@ -132,22 +189,22 @@ const fetchCourseData = async (courseCode: string) => {
     };
     return colors[gradeLetter] || 'bg-gray-100 text-gray-800';
   };
-// In GradeManagement.tsx, when setting selectedStudent
-const handleViewGrade = (student: any, grade: any) => {
-  console.log('Viewing grade for student:', student);
-  console.log('Grade data:', grade);
-  
-  // Make sure student object has the required properties
-  if (!student || !student.studentId) {
-    console.error('Student object is invalid:', student);
-    toast.error('Student data is incomplete');
-    return;
-  }
-  
-  setSelectedStudent(student);
-  setSelectedGrade(grade);
-  setShowViewModal(true);
-};
+
+  const handleViewGrade = (student: Student, grade: Grade) => {
+    console.log('Viewing grade for student:', student);
+    console.log('Grade data:', grade);
+    
+    if (!student || !student.studentId) {
+      console.error('Student object is invalid:', student);
+      toast.error('Student data is incomplete');
+      return;
+    }
+    
+    setSelectedStudent(student);
+    setSelectedGrade(grade);
+    setShowViewModal(true);
+  };
+
   return (
     <div>
       <div className="mb-6">
@@ -242,7 +299,7 @@ const handleViewGrade = (student: any, grade: any) => {
                             <button
                               onClick={() => {
                                 setSelectedStudent(student);
-                                setSelectedGrade(grade);
+                                setSelectedGrade(grade || null);
                                 setShowSubmitModal(true);
                               }}
                               className="px-3 py-1 text-sm text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition"
@@ -251,11 +308,7 @@ const handleViewGrade = (student: any, grade: any) => {
                             </button>
                             {grade && (
                               <button
-                                onClick={() => {
-                                  setSelectedStudent(student);
-                                  setSelectedGrade(grade);
-                                  setShowViewModal(true);
-                                }}
+                                onClick={() => handleViewGrade(student, grade)}
                                 className="px-3 py-1 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
                               >
                                 View
@@ -294,20 +347,18 @@ const handleViewGrade = (student: any, grade: any) => {
       )}
 
       {/* View Modal */}
-     
-
-{showViewModal && (
-  <StudentGradesView
-    student={selectedStudent || {}}
-    grade={selectedGrade || {}}
-    course={currentCourse || {}}
-    onClose={() => {
-      setShowViewModal(false);
-      setSelectedStudent(null);
-      setSelectedGrade(null);
-    }}
-  />
-)}
+      {showViewModal && (
+        <StudentGradesView
+          student={selectedStudent || {}}
+          grade={selectedGrade || {}}
+          course={currentCourse || {}}
+          onClose={() => {
+            setShowViewModal(false);
+            setSelectedStudent(null);
+            setSelectedGrade(null);
+          }}
+        />
+      )}
     </div>
   );
 };

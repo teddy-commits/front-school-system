@@ -14,10 +14,42 @@ import { financeApi } from '../../api/modules/financeApi';
 import SemesterRegistration from './registration/SemesterRegistration';
 import StudentSectionEnrollment from './sections/StudentSectionEnrollment';
 
+// Define proper types for the responses
+interface CGPAResponse {
+  success: boolean;
+  data?: number;
+  message?: string;
+  status?: number;
+}
+
+interface FeeSummaryResponse {
+  success: boolean;
+  data?: {
+    totalOutstanding: number;
+    totalPaid?: number;
+    totalDue?: number;
+    [key: string]: any;
+  };
+  message?: string;
+  status?: number;
+}
+
+interface StudentInfo {
+  id: number;
+  studentId: string;
+  fullName: string;
+  email: string;
+  program: string;
+  department: string;
+  currentSemester: number;
+  enrollmentYear: number;
+  [key: string]: any;
+}
+
 const StudentDashboard: React.FC = () => {
   const { user, userId } = useAuth();
   const location = useLocation();
-  const [studentInfo, setStudentInfo] = useState<any>(null);
+  const [studentInfo, setStudentInfo] = useState<StudentInfo | null>(null);
   const [cgpa, setCgpa] = useState<number>(0);
   const [totalOutstanding, setTotalOutstanding] = useState<number>(0);
   const [enrolledCourses, setEnrolledCourses] = useState<number>(0);
@@ -30,13 +62,23 @@ const StudentDashboard: React.FC = () => {
     if (!userId) return;
 
     try {
-      // Fetch CGPA
-      const cgpaResult = await gradeApi.getStudentCGPA(userId);
-      if (cgpaResult.success) setCgpa(cgpaResult.data);
+      // Fetch CGPA with type safety
+      const cgpaResult = await gradeApi.getStudentCGPA(userId) as CGPAResponse;
+      if (cgpaResult.success && cgpaResult.data !== undefined) {
+        setCgpa(cgpaResult.data);
+      }
 
-      // Fetch fee summary
-      const feeResult = await financeApi.getStudentFeeSummary(userId);
-      if (feeResult.success) setTotalOutstanding(feeResult.data.totalOutstanding || 0);
+      // Fetch fee summary with type safety
+      const feeResult = await financeApi.getStudentFeeSummary(userId) as FeeSummaryResponse;
+      if (feeResult.success && feeResult.data) {
+        setTotalOutstanding(feeResult.data.totalOutstanding || 0);
+      }
+
+      // You can also fetch enrolled courses count if needed
+      // const coursesResult = await enrollmentApi.getStudentEnrollments(userId);
+      // if (coursesResult.success && coursesResult.data) {
+      //   setEnrolledCourses(coursesResult.data.length);
+      // }
     } catch (error) {
       console.error('Error fetching student data:', error);
     }
@@ -52,6 +94,8 @@ const StudentDashboard: React.FC = () => {
       case 'payments': return 'Payment History';
       case 'invoices': return 'Invoices';
       case 'profile': return 'My Profile';
+      case 'semester-registration': return 'Semester Registration';
+      case 'section-registration': return 'Section Enrollment';
       default: return 'Dashboard';
     }
   };
@@ -72,7 +116,7 @@ const StudentDashboard: React.FC = () => {
               </div>
               <div className="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center">
                 <span className="text-white font-semibold">
-                  {user?.fullName?.charAt(0) || 'S'}
+                  {user?.fullName?.charAt(0) || user?.fullName?.charAt(0) || 'S'}
                 </span>
               </div>
             </div>

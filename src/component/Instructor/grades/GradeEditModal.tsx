@@ -3,13 +3,50 @@ import { X } from 'lucide-react';
 import { gradeApi } from '../../../api/modules/gradeApi';
 import toast from 'react-hot-toast';
 
+interface Grade {
+  id: number;
+  score: number;
+  gradeLetter: string;
+  gradePoint: number;
+  remarks?: string;
+}
+
+interface Course {
+  id?: number;
+  courseCode: string;
+  courseName: string;
+  credits?: number;
+}
+
+interface Student {
+  id?: number;
+  studentName: string;
+  studentIdNumber: string;
+  email?: string;
+}
+
 interface GradeEditModalProps {
-  grade: any;
-  course: any;
-  student: any;
+  grade: Grade;
+  course: Course;
+  student: Student;
   onClose: () => void;
   onSuccess: () => void;
 }
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
 
 const GradeEditModal: React.FC<GradeEditModalProps> = ({ grade, course, student, onClose, onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -32,18 +69,27 @@ const GradeEditModal: React.FC<GradeEditModalProps> = ({ grade, course, student,
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const scoreValue = parseFloat(score);
+    if (isNaN(scoreValue) || scoreValue < 0 || scoreValue > 100) {
+      toast.error('Please enter a valid score between 0 and 100');
+      return;
+    }
+    
     setIsLoading(true);
 
     const result = await gradeApi.updateGrade(grade.id, { 
-      score: parseFloat(score), 
+      score: scoreValue, 
       remarks 
-    });
+    }) as ApiResponse;
 
     if (result.success) {
       toast.success('Grade updated successfully!');
       onSuccess();
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to update grade');
     }
     setIsLoading(false);
   };
@@ -55,7 +101,7 @@ const GradeEditModal: React.FC<GradeEditModalProps> = ({ grade, course, student,
       <div className="bg-white rounded-lg w-full max-w-md">
         <div className="flex justify-between items-center p-6 border-b">
           <h2 className="text-xl font-semibold">Edit Grade</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -95,7 +141,7 @@ const GradeEditModal: React.FC<GradeEditModalProps> = ({ grade, course, student,
               rows={3}
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               placeholder="Additional comments..."
             />
           </div>
@@ -111,7 +157,7 @@ const GradeEditModal: React.FC<GradeEditModalProps> = ({ grade, course, student,
             <button
               type="submit"
               disabled={isLoading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Saving...' : 'Save Changes'}
             </button>

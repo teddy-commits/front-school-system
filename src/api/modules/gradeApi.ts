@@ -1,10 +1,28 @@
 import apiClient, { handleApiError } from '../client';
 
+interface GradeData {
+  studentId: number;
+  courseCode: string;
+  score: number;
+  gradeLetter?: string;
+  gradePoint?: number;
+  semester?: string;
+  academicYear?: number;
+  remarks?: string;
+}
+
+interface UpdateGradeData {
+  score?: number;
+  gradeLetter?: string;
+  gradePoint?: number;
+  remarks?: string;
+}
+
 export const gradeApi = {
   // ========== Grade Management ==========
   
   // Submit grade for a student
-  submitGrade: async (data) => {
+  submitGrade: async (data: GradeData) => {
     try {
       const response = await apiClient.post('/grading/grades/submit', data);
       return { success: true, data: response.data };
@@ -14,7 +32,7 @@ export const gradeApi = {
   },
 
   // Get all grades for a student
-  getStudentGrades: async (studentId) => {
+  getStudentGrades: async (studentId: number) => {
     try {
       const response = await apiClient.get(`/grading/students/${studentId}/grades`);
       return { success: true, data: response.data };
@@ -24,7 +42,7 @@ export const gradeApi = {
   },
 
   // Get all grades for a course
-  getCourseGrades: async (courseCode) => {
+  getCourseGrades: async (courseCode: string) => {
     try {
       const response = await apiClient.get(`/grading/courses/${courseCode}/grades`);
       return { success: true, data: response.data };
@@ -34,7 +52,7 @@ export const gradeApi = {
   },
 
   // Update grade
-  updateGrade: async (gradeId, data) => {
+  updateGrade: async (gradeId: number, data: UpdateGradeData) => {
     try {
       const response = await apiClient.put(`/grading/grades/${gradeId}`, data);
       return { success: true, data: response.data };
@@ -44,7 +62,7 @@ export const gradeApi = {
   },
 
   // Get student transcript
-  getStudentTranscript: async (studentId) => {
+  getStudentTranscript: async (studentId: number) => {
     try {
       const response = await apiClient.get(`/grading/students/${studentId}/transcript`);
       return { success: true, data: response.data };
@@ -54,7 +72,7 @@ export const gradeApi = {
   },
 
   // Get student CGPA
-  getStudentCGPA: async (studentId) => {
+  getStudentCGPA: async (studentId: number) => {
     try {
       const response = await apiClient.get(`/grading/students/${studentId}/cgpa`);
       return { success: true, data: response.data };
@@ -64,7 +82,7 @@ export const gradeApi = {
   },
 
   // Publish grades for a course
-  publishGrades: async (courseCode) => {
+  publishGrades: async (courseCode: string) => {
     try {
       const response = await apiClient.post(`/grading/courses/${courseCode}/publish`);
       return { success: true, data: response.data };
@@ -74,7 +92,7 @@ export const gradeApi = {
   },
 
   // Get grade statistics for a course
-  getCourseGradeStats: async (courseCode) => {
+  getCourseGradeStats: async (courseCode: string) => {
     try {
       const response = await apiClient.get(`/grading/courses/${courseCode}/grades/stats`);
       return { success: true, data: response.data };

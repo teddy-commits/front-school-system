@@ -17,6 +17,21 @@ interface Payment {
   paymentDate: string;
 }
 
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const PaymentManagement: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [filteredPayments, setFilteredPayments] = useState<Payment[]>([]);
@@ -41,11 +56,13 @@ const PaymentManagement: React.FC = () => {
   const fetchPayments = async () => {
     setIsLoading(true);
     try {
-      const result = await financeApi.getAllPayments();
-      if (result.success) {
+      const result = await financeApi.getAllPayments() as ApiResponse<Payment[]>;
+      if (result.success && 'data' in result) {
         setPayments(Array.isArray(result.data) ? result.data : []);
-      } else {
+      } else if (!result.success && 'message' in result) {
         toast.error(result.message || 'Failed to load payments');
+      } else {
+        toast.error('Failed to load payments');
       }
     } catch (error) {
       console.error('Error fetching payments:', error);
@@ -78,17 +95,19 @@ const PaymentManagement: React.FC = () => {
   };
 
   const handleRefund = async (paymentId: number, reason: string) => {
-    const result = await financeApi.refundPayment(paymentId, reason);
+    const result = await financeApi.refundPayment(paymentId, reason) as ApiResponse;
     if (result.success) {
       toast.success('Payment refunded successfully');
       fetchPayments();
       setShowRefundModal(false);
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message || 'Failed to refund payment');
+    } else {
+      toast.error('Failed to refund payment');
     }
   };
 
-  // ✅ UPDATED: Format as Ethiopian Birr (ETB)
+  // Format as Ethiopian Birr (ETB)
   const formatCurrency = (amount: number) => {
     return `ETB ${(amount || 0).toLocaleString('en-US', { 
       minimumFractionDigits: 2, 
@@ -215,7 +234,7 @@ const PaymentManagement: React.FC = () => {
           <select 
             value={selectedMethod} 
             onChange={(e) => setSelectedMethod(e.target.value)} 
-            className="px-4 py-2 border rounded-lg"
+            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
           >
             {paymentMethods.map(m => (
               <option key={m} value={m}>{m === 'ALL' ? 'All Methods' : m.replace('_', ' ')}</option>
@@ -224,7 +243,7 @@ const PaymentManagement: React.FC = () => {
           <select 
             value={selectedStatus} 
             onChange={(e) => setSelectedStatus(e.target.value)} 
-            className="px-4 py-2 border rounded-lg"
+            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
           >
             {statuses.map(s => (
               <option key={s} value={s}>{s === 'ALL' ? 'All Status' : s}</option>
@@ -342,7 +361,7 @@ const RefundModal: React.FC<{
       <div className="bg-white rounded-lg w-full max-w-md">
         <div className="flex justify-between items-center p-6 border-b">
           <h2 className="text-xl font-semibold">Refund Payment</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
             <span className="text-2xl">&times;</span>
           </button>
         </div>
@@ -384,7 +403,7 @@ const RefundModal: React.FC<{
             <button 
               onClick={handleSubmit} 
               disabled={isProcessing}
-              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition disabled:opacity-50"
+              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isProcessing ? 'Processing...' : 'Process Refund'}
             </button>

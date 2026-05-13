@@ -17,6 +17,21 @@ interface Enrollment {
   status: string;
 }
 
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const StudentCourses: React.FC = () => {
   const { userId } = useAuth();
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
@@ -31,11 +46,13 @@ const StudentCourses: React.FC = () => {
   const fetchEnrollments = async () => {
     setIsLoading(true);
     try {
-      const result = await enrollmentApi.getStudentCourseEnrollments(userId!);
-      if (result.success) {
-        setEnrollments(result.data);
-      } else {
+      const result = await enrollmentApi.getStudentCourseEnrollments(userId!) as ApiResponse<Enrollment[]>;
+      if (result.success && 'data' in result) {
+        setEnrollments(Array.isArray(result.data) ? result.data : []);
+      } else if (!result.success && 'message' in result) {
         toast.error(result.message);
+      } else {
+        toast.error('Failed to load courses');
       }
     } catch (error) {
       console.error('Error fetching enrollments:', error);

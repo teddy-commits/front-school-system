@@ -52,6 +52,20 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// Define the possible return types from authApi.login
+type LoginSuccessResponse = {
+  success: true;
+  data: LoginResponse;
+};
+
+type LoginErrorResponse = {
+  success: false;
+  message: string;
+  status: number;
+};
+
+type LoginResult = LoginSuccessResponse | LoginErrorResponse;
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<LoginResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -82,11 +96,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (id: string, password: string, userType: 'student' | 'staff'): Promise<boolean> => {
     setIsLoading(true);
     
-    const result = await authApi.login(id, password);
+    const result = await authApi.login(id, password) as LoginResult;
     
-    if (result.success && result.data) {
+    // Type narrowing: check if success is true and data exists
+    if (result.success && 'data' in result && result.data) {
       setUser(result.data);
       localStorage.setItem('userType', userType);
+      localStorage.setItem('accessToken', result.data.token);
+      localStorage.setItem('user', JSON.stringify(result.data));
       setIsLoading(false);
       
       if (userType === 'student') {
@@ -97,8 +114,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return true;
     }
     
+    // Type narrowing for error case
+    const errorMessage = !result.success && 'message' in result 
+      ? result.message 
+      : 'Login failed. Please check your credentials.';
+    
     setIsLoading(false);
-    toast.error(result.message || 'Login failed. Please check your credentials.');
+    toast.error(errorMessage);
     return false;
   };
 
@@ -106,6 +128,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true);
     await authApi.logout();
     setUser(null);
+    localStorage.removeItem('user');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userType');
     setIsLoading(false);
     toast.success('Logged out successfully');
   };

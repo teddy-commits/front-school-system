@@ -3,15 +3,44 @@ import { X } from 'lucide-react';
 import { financeApi } from '../../../api/modules/financeApi';
 import toast from 'react-hot-toast';
 
+interface Student {
+  id: number;
+  fullName: string;
+  studentId: string;
+  department: string;
+  email?: string;
+}
+
 interface GenerateInvoiceModalProps {
-  students: any[];
+  students: Student[];
   onClose: () => void;
   onSuccess: () => void;
 }
 
+interface FormData {
+  studentId: string;
+  semester: string;
+  academicYear: number;
+}
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const GenerateInvoiceModal: React.FC<GenerateInvoiceModalProps> = ({ students, onClose, onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     studentId: '',
     semester: 'FALL',
     academicYear: new Date().getFullYear()
@@ -19,20 +48,28 @@ const GenerateInvoiceModal: React.FC<GenerateInvoiceModalProps> = ({ students, o
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.studentId) {
+      toast.error('Please select a student');
+      return;
+    }
+    
     setIsLoading(true);
     
     const result = await financeApi.generateInvoice(
       parseInt(formData.studentId),
       formData.semester,
       formData.academicYear
-    );
+    ) as ApiResponse;
     
     if (result.success) {
       toast.success('Invoice generated successfully!');
       onSuccess();
       onClose();
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to generate invoice');
     }
     setIsLoading(false);
   };
@@ -88,7 +125,7 @@ const GenerateInvoiceModal: React.FC<GenerateInvoiceModalProps> = ({ students, o
                 required
                 value={formData.academicYear}
                 onChange={(e) => setFormData({...formData, academicYear: parseInt(e.target.value)})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
               >
                 {years.map(year => (
                   <option key={year} value={year}>{year}-{year + 1}</option>
@@ -113,7 +150,7 @@ const GenerateInvoiceModal: React.FC<GenerateInvoiceModalProps> = ({ students, o
             <button
               type="submit"
               disabled={isLoading}
-              className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50"
+              className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Generating...' : 'Generate Invoice'}
             </button>

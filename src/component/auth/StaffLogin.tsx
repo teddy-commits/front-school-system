@@ -17,8 +17,9 @@ const StaffLogin: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Pass the identifier (email or ID) to login function
-    const success = await login(loginIdentifier, password, 'staff', loginMethod);
+    // Use loginIdentifier directly - this can be either email or staff ID
+    // The login function will handle it appropriately
+    const success = await login(loginIdentifier, password, 'staff');
     
     if (success) {
       // Get user role from localStorage

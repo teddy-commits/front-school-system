@@ -3,15 +3,55 @@ import { X } from 'lucide-react';
 import { courseApi } from '../../../api/modules/courseApi';
 import toast from 'react-hot-toast';
 
+interface Instructor {
+  id: number;
+  fullName: string;
+  email: string;
+  department?: string;
+}
+
 interface CreateCourseModalProps {
   onClose: () => void;
   onSuccess: () => void;
-  instructors: any[];
+  instructors: Instructor[];
 }
+
+interface FormData {
+  courseCode: string;
+  courseName: string;
+  description: string;
+  credits: number;
+  department: string;
+  faculty: string;
+  semester: string;
+  academicYear: number;
+  status: string;
+  instructorEmail: string;
+  maxStudents: number;
+  prerequisites: string;
+  syllabus: string;
+  room: string;
+  schedule: string;
+}
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
 
 const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ onClose, onSuccess, instructors }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     courseCode: '',
     courseName: '',
     description: '',
@@ -46,21 +86,40 @@ const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ onClose, onSucces
   const semesters = ['FALL', 'SPRING', 'SUMMER'];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.courseCode.trim()) {
+      toast.error('Please enter a course code');
+      return;
+    }
+    
+    if (!formData.courseName.trim()) {
+      toast.error('Please enter a course name');
+      return;
+    }
+    
+    if (formData.credits <= 0) {
+      toast.error('Please enter a valid number of credits');
+      return;
+    }
+    
     setIsLoading(true);
 
-    const result = await courseApi.createCourse(formData);
+    const result = await courseApi.createCourse(formData) as ApiResponse;
 
     if (result.success) {
       toast.success(`Course ${formData.courseCode} created successfully!`);
       onSuccess();
       onClose();
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to create course');
     }
 
     setIsLoading(false);
@@ -71,7 +130,7 @@ const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ onClose, onSucces
       <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-white">
           <h2 className="text-xl font-semibold">Create New Course</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -252,6 +311,18 @@ const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ onClose, onSucces
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Syllabus URL</label>
+            <input
+              type="text"
+              name="syllabus"
+              value={formData.syllabus}
+              onChange={handleChange}
+              placeholder="Link to course syllabus"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
           <div className="flex justify-end space-x-3 pt-4">
             <button
               type="button"
@@ -263,7 +334,7 @@ const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ onClose, onSucces
             <button
               type="submit"
               disabled={isLoading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Creating...' : 'Create Course'}
             </button>

@@ -14,6 +14,38 @@ import SectionManagement from '../Academic Admin/sections/SectionManagement';
 import AdminSectionEnrollment from './sections/AdminSectionEnrollment';
 import toast from 'react-hot-toast';
 
+interface Course {
+  id: number;
+  courseCode: string;
+  courseName: string;
+  credits: number;
+  department: string;
+}
+
+interface Student {
+  id: number;
+  studentId: string;
+  fullName: string;
+  email: string;
+  department: string;
+  isActive: boolean;
+}
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const AcademicAdminDashboard: React.FC = () => {
   const { user } = useAuth();
   const location = useLocation();
@@ -29,11 +61,19 @@ const AcademicAdminDashboard: React.FC = () => {
   const fetchDashboardStats = async () => {
     setIsLoading(true);
     try {
-      const coursesResult = await courseApi.getAllCourses();
-      if (coursesResult.success) setTotalCourses(coursesResult.data.length);
+      const coursesResult = await courseApi.getAllCourses() as ApiResponse<Course[]>;
+      if (coursesResult.success && 'data' in coursesResult && Array.isArray(coursesResult.data)) {
+        setTotalCourses(coursesResult.data.length);
+      } else if (!coursesResult.success && 'message' in coursesResult) {
+        toast.error(coursesResult.message);
+      }
 
-      const studentsResult = await registrationApi.getAllStudents();
-      if (studentsResult.success) setTotalStudents(studentsResult.data.length);
+      const studentsResult = await registrationApi.getAllStudents() as ApiResponse<Student[]>;
+      if (studentsResult.success && 'data' in studentsResult && Array.isArray(studentsResult.data)) {
+        setTotalStudents(studentsResult.data.length);
+      } else if (!studentsResult.success && 'message' in studentsResult) {
+        toast.error(studentsResult.message);
+      }
       
       setTotalEnrollments(156); // This would come from an enrollment stats API
     } catch (error) {
@@ -53,6 +93,8 @@ const AcademicAdminDashboard: React.FC = () => {
       case 'students': return 'Student Management';
       case 'reports': return 'Academic Reports';
       case 'sessions': return 'Registration Session Management';
+      case 'sections': return 'Section Management';
+      case 'section-enrollment': return 'Section Enrollment';
       default: return 'Dashboard';
     }
   };

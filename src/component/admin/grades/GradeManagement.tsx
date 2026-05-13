@@ -36,11 +36,44 @@ interface Course {
   instructorName: string;
 }
 
+interface Student {
+  id: number;
+  fullName: string;
+  studentId: string;
+  email: string;
+  department: string;
+}
+
+interface CourseStats {
+  avgScore: number;
+  gradeDistribution: Record<string, number>;
+  totalStudents: number;
+}
+
+interface GradeDistribution {
+  [key: string]: number;
+}
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const GradeManagement: React.FC = () => {
   const [grades, setGrades] = useState<Grade[]>([]);
   const [filteredGrades, setFilteredGrades] = useState<Grade[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
-  const [students, setStudents] = useState<any[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('ALL');
@@ -50,7 +83,7 @@ const GradeManagement: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showTranscriptModal, setShowTranscriptModal] = useState(false);
   const [transcriptData, setTranscriptData] = useState<any>(null);
-  const [courseStats, setCourseStats] = useState<any>(null);
+  const [courseStats, setCourseStats] = useState<CourseStats | null>(null);
 
   const semesters = ['ALL', 'FALL', 'SPRING', 'SUMMER'];
 
@@ -65,11 +98,15 @@ const GradeManagement: React.FC = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const coursesResult = await courseApi.getAllCourses();
-      if (coursesResult.success) setCourses(coursesResult.data);
+      const coursesResult = await courseApi.getAllCourses() as ApiResponse<Course[]>;
+      if (coursesResult.success && 'data' in coursesResult) {
+        setCourses(Array.isArray(coursesResult.data) ? coursesResult.data : []);
+      }
 
-      const studentsResult = await registrationApi.getAllStudents();
-      if (studentsResult.success) setStudents(studentsResult.data);
+      const studentsResult = await registrationApi.getAllStudents() as ApiResponse<Student[]>;
+      if (studentsResult.success && 'data' in studentsResult) {
+        setStudents(Array.isArray(studentsResult.data) ? studentsResult.data : []);
+      }
 
       setGrades([]);
     } catch (error) {
@@ -104,51 +141,59 @@ const GradeManagement: React.FC = () => {
 
   const fetchCourseGrades = async (courseCode: string) => {
     setIsLoading(true);
-    const result = await gradeApi.getCourseGrades(courseCode);
-    if (result.success) {
+    const result = await gradeApi.getCourseGrades(courseCode) as ApiResponse<Grade[]>;
+    if (result.success && 'data' in result && Array.isArray(result.data)) {
       setGrades(result.data);
-      const scores = result.data.map(g => g.score);
-      const avgScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
-      const gradeDistribution = result.data.reduce((acc, g) => {
+      const scores = result.data.map((g: Grade) => g.score);
+      const avgScore = scores.length > 0 ? scores.reduce((a: number, b: number) => a + b, 0) / scores.length : 0;
+      const gradeDistribution: GradeDistribution = result.data.reduce((acc: GradeDistribution, g: Grade) => {
         acc[g.gradeLetter] = (acc[g.gradeLetter] || 0) + 1;
         return acc;
       }, {});
       setCourseStats({ avgScore, gradeDistribution, totalStudents: scores.length });
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to fetch course grades');
     }
     setIsLoading(false);
   };
 
   const handleSubmitGrade = async (gradeData: any) => {
-    const result = await gradeApi.submitGrade(gradeData);
+    const result = await gradeApi.submitGrade(gradeData) as ApiResponse;
     if (result.success) {
       toast.success('Grade submitted successfully');
       setShowSubmitModal(false);
       if (selectedCourse !== 'ALL') fetchCourseGrades(selectedCourse);
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to submit grade');
     }
   };
 
   const handleUpdateGrade = async (gradeId: number, data: any) => {
-    const result = await gradeApi.updateGrade(gradeId, data);
+    const result = await gradeApi.updateGrade(gradeId, data) as ApiResponse;
     if (result.success) {
       toast.success('Grade updated successfully');
       setShowEditModal(false);
       if (selectedCourse !== 'ALL') fetchCourseGrades(selectedCourse);
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to update grade');
     }
   };
 
   const handleViewTranscript = async (studentId: number) => {
-    const result = await gradeApi.getStudentTranscript(studentId);
-    if (result.success) {
+    const result = await gradeApi.getStudentTranscript(studentId) as ApiResponse;
+    if (result.success && 'data' in result) {
       setTranscriptData(result.data);
       setShowTranscriptModal(true);
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to load transcript');
     }
   };
 
@@ -254,28 +299,27 @@ const GradeManagement: React.FC = () => {
             />
           </div>
           <div className="w-64">
-<select
-  value={selectedCourse}
-  onChange={(e) => {
-    const courseCode = e.target.value;
-    setSelectedCourse(courseCode);
-    if (courseCode !== 'ALL') {
-      fetchCourseGrades(courseCode);
-    } else {
-      // Clear grades when "All Courses" is selected
-      setGrades([]);
-      setFilteredGrades([]);
-    }
-  }}
-  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
->
-  <option value="ALL">All Courses</option>
-  {courses.map(course => (
-    <option key={course.id} value={course.courseCode}>
-      {course.courseCode} - {course.courseName}
-    </option>
-  ))}
-</select>
+            <select
+              value={selectedCourse}
+              onChange={(e) => {
+                const courseCode = e.target.value;
+                setSelectedCourse(courseCode);
+                if (courseCode !== 'ALL') {
+                  fetchCourseGrades(courseCode);
+                } else {
+                  setGrades([]);
+                  setFilteredGrades([]);
+                }
+              }}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="ALL">All Courses</option>
+              {courses.map(course => (
+                <option key={course.id} value={course.courseCode}>
+                  {course.courseCode} - {course.courseName}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="w-48">
             <select
@@ -353,14 +397,14 @@ const GradeManagement: React.FC = () => {
                             setSelectedGrade(grade);
                             setShowEditModal(true);
                           }}
-                          className="p-1 text-green-600 hover:bg-green-50 rounded"
+                          className="p-1 text-green-600 hover:bg-green-50 rounded transition"
                           title="Edit Grade"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleViewTranscript(grade.studentId)}
-                          className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                          className="p-1 text-blue-600 hover:bg-blue-50 rounded transition"
                           title="View Transcript"
                         >
                           <FileText className="w-4 h-4" />
@@ -415,7 +459,7 @@ const GradeManagement: React.FC = () => {
 // Submit Grade Modal Component
 const SubmitGradeModal: React.FC<{
   courses: Course[];
-  students: any[];
+  students: Student[];
   onSubmit: (data: any) => void;
   onClose: () => void;
 }> = ({ courses, students, onSubmit, onClose }) => {
@@ -452,34 +496,34 @@ const SubmitGradeModal: React.FC<{
       <div className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center p-6 border-b">
           <h2 className="text-xl font-semibold">Submit Grade</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
             <X className="w-5 h-5" />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Student</label>
-            <select required value={formData.studentId} onChange={(e) => setFormData({...formData, studentId: e.target.value})} className="w-full px-3 py-2 border rounded-lg">
+            <select required value={formData.studentId} onChange={(e) => setFormData({...formData, studentId: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
               <option value="">Select Student</option>
               {students.map(s => <option key={s.id} value={s.id}>{s.fullName} ({s.studentId})</option>)}
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Course</label>
-            <select required value={formData.courseCode} onChange={(e) => setFormData({...formData, courseCode: e.target.value})} className="w-full px-3 py-2 border rounded-lg">
+            <select required value={formData.courseCode} onChange={(e) => setFormData({...formData, courseCode: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
               <option value="">Select Course</option>
               {courses.map(c => <option key={c.id} value={c.courseCode}>{c.courseCode} - {c.courseName}</option>)}
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Score (%)</label>
-            <input type="number" min="0" max="100" step="0.01" required value={formData.score} onChange={(e) => setFormData({...formData, score: e.target.value})} className="w-full px-3 py-2 border rounded-lg" />
+            <input type="number" min="0" max="100" step="0.01" required value={formData.score} onChange={(e) => setFormData({...formData, score: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
             {formData.score && <p className="text-sm mt-1">Grade: <span className="font-semibold">{getGradeLetter(parseFloat(formData.score))}</span></p>}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Semester</label>
-              <select value={formData.semester} onChange={(e) => setFormData({...formData, semester: e.target.value})} className="w-full px-3 py-2 border rounded-lg">
+              <select value={formData.semester} onChange={(e) => setFormData({...formData, semester: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
                 <option value="FALL">Fall</option>
                 <option value="SPRING">Spring</option>
                 <option value="SUMMER">Summer</option>
@@ -487,16 +531,16 @@ const SubmitGradeModal: React.FC<{
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Academic Year</label>
-              <input type="number" value={formData.academicYear} onChange={(e) => setFormData({...formData, academicYear: parseInt(e.target.value)})} className="w-full px-3 py-2 border rounded-lg" />
+              <input type="number" value={formData.academicYear} onChange={(e) => setFormData({...formData, academicYear: parseInt(e.target.value)})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" />
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Remarks</label>
-            <textarea rows={2} value={formData.remarks} onChange={(e) => setFormData({...formData, remarks: e.target.value})} className="w-full px-3 py-2 border rounded-lg" placeholder="Optional remarks" />
+            <textarea rows={2} value={formData.remarks} onChange={(e) => setFormData({...formData, remarks: e.target.value})} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Optional remarks" />
           </div>
           <div className="flex justify-end space-x-3 pt-4">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
-            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg">Submit Grade</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button>
+            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">Submit Grade</button>
           </div>
         </form>
       </div>
@@ -519,17 +563,17 @@ const EditGradeModal: React.FC<{ grade: Grade; onUpdate: (id: number, data: any)
       <div className="bg-white rounded-lg w-full max-w-md">
         <div className="flex justify-between items-center p-6 border-b">
           <h2 className="text-xl font-semibold">Edit Grade</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition"><X className="w-5 h-5" /></button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div><label className="block text-sm font-medium text-gray-700 mb-1">Student</label><input type="text" value={grade.studentName} disabled className="w-full px-3 py-2 border rounded-lg bg-gray-50" /></div>
           <div><label className="block text-sm font-medium text-gray-700 mb-1">Course</label><input type="text" value={`${grade.courseCode} - ${grade.courseName}`} disabled className="w-full px-3 py-2 border rounded-lg bg-gray-50" /></div>
           <div><label className="block text-sm font-medium text-gray-700 mb-1">Current Grade</label><input type="text" value={grade.gradeLetter} disabled className="w-full px-3 py-2 border rounded-lg bg-gray-50" /></div>
-          <div><label className="block text-sm font-medium text-gray-700 mb-1">New Score (%)</label><input type="number" min="0" max="100" step="0.01" required value={score} onChange={(e) => setScore(e.target.value)} className="w-full px-3 py-2 border rounded-lg" /></div>
-          <div><label className="block text-sm font-medium text-gray-700 mb-1">Remarks</label><textarea rows={2} value={remarks} onChange={(e) => setRemarks(e.target.value)} className="w-full px-3 py-2 border rounded-lg" /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">New Score (%)</label><input type="number" min="0" max="100" step="0.01" required value={score} onChange={(e) => setScore(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" /></div>
+          <div><label className="block text-sm font-medium text-gray-700 mb-1">Remarks</label><textarea rows={2} value={remarks} onChange={(e) => setRemarks(e.target.value)} className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" /></div>
           <div className="flex justify-end space-x-3 pt-4">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
-            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg">Update Grade</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button>
+            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">Update Grade</button>
           </div>
         </form>
       </div>
@@ -544,7 +588,7 @@ const TranscriptModal: React.FC<{ transcript: any; onClose: () => void }> = ({ t
       <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center p-6 border-b">
           <h2 className="text-xl font-semibold">Academic Transcript</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -596,7 +640,7 @@ const TranscriptModal: React.FC<{ transcript: any; onClose: () => void }> = ({ t
           ))}
         </div>
         <div className="flex justify-end p-6 border-t">
-          <button onClick={onClose} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg">Close</button>
+          <button onClick={onClose} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">Close</button>
         </div>
       </div>
     </div>

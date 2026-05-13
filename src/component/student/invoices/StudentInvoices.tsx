@@ -17,6 +17,21 @@ interface Invoice {
   status: string;
 }
 
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const StudentInvoices: React.FC = () => {
   const { userId } = useAuth();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -31,11 +46,13 @@ const StudentInvoices: React.FC = () => {
   const fetchInvoices = async () => {
     setIsLoading(true);
     try {
-      const result = await financeApi.getStudentInvoices(userId!);
-      if (result.success) {
+      const result = await financeApi.getStudentInvoices(userId!) as ApiResponse<Invoice[]>;
+      if (result.success && 'data' in result) {
         setInvoices(Array.isArray(result.data) ? result.data : []);
-      } else {
+      } else if (!result.success && 'message' in result) {
         toast.error(result.message || 'Failed to load invoices');
+      } else {
+        toast.error('Failed to load invoices');
       }
     } catch (error) {
       console.error('Error fetching invoices:', error);

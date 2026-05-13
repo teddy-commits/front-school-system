@@ -44,6 +44,21 @@ interface EnrolledStudent {
   status: string;
 }
 
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const EnrollmentManagement: React.FC = () => {
   const [sections, setSections] = useState<Section[]>([]);
   const [selectedSection, setSelectedSection] = useState<Section | null>(null);
@@ -57,7 +72,8 @@ const EnrollmentManagement: React.FC = () => {
   const [selectedYearLevel, setSelectedYearLevel] = useState<string>('ALL');
   const [showStudentModal, setShowStudentModal] = useState(false);
   const [selectedCourseFilter, setSelectedCourseFilter] = useState<string>('ALL');
-const [selectedStudentId, setSelectedStudentId] = useState<string>('');
+  const [selectedStudentId, setSelectedStudentId] = useState<string>('');
+  
   const semesters = ['FALL', 'SPRING', 'SUMMER'];
   const years = [2024, 2025, 2026];
   const yearLevels = ['ALL', '1', '2', '3', '4', '5'];
@@ -68,11 +84,13 @@ const [selectedStudentId, setSelectedStudentId] = useState<string>('');
 
   const fetchSections = async () => {
     setIsLoading(true);
-    const result = await sectionApi.getSectionsBySemester(selectedSemester, selectedYear);
-    if (result.success) {
-      setSections(result.data);
-    } else {
+    const result = await sectionApi.getSectionsBySemester(selectedSemester, selectedYear) as ApiResponse<Section[]>;
+    if (result.success && 'data' in result) {
+      setSections(Array.isArray(result.data) ? result.data : []);
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to fetch sections');
     }
     setIsLoading(false);
   };
@@ -80,31 +98,35 @@ const [selectedStudentId, setSelectedStudentId] = useState<string>('');
   const fetchSectionStudents = async (section: Section) => {
     setIsLoading(true);
     setSelectedSection(section);
-    const result = await enrollmentApi.getSectionEnrollments(section.id);
-    if (result.success) {
-      setEnrolledStudents(result.data);
-    } else {
+    const result = await enrollmentApi.getSectionEnrollments(section.id) as ApiResponse<EnrolledStudent[]>;
+    if (result.success && 'data' in result) {
+      setEnrolledStudents(Array.isArray(result.data) ? result.data : []);
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to fetch enrolled students');
     }
     setIsLoading(false);
   };
 
- const fetchAvailableStudents = async () => {
-    const result = await registrationApi.getAllStudents();
-    if (result.success) {
+  const fetchAvailableStudents = async () => {
+    const result = await registrationApi.getAllStudents() as ApiResponse<Student[]>;
+    if (result.success && 'data' in result) {
       // Get all students already enrolled in ANY section for this semester
-      const enrolledResult = await enrollmentApi.getInstructorStudents(selectedSemester, selectedYear);
-      const enrolledStudentIds = enrolledResult.success 
+      const enrolledResult = await enrollmentApi.getInstructorStudents(selectedSemester, selectedYear) as ApiResponse<any[]>;
+      const enrolledStudentIds = (enrolledResult.success && 'data' in enrolledResult && Array.isArray(enrolledResult.data)) 
         ? enrolledResult.data.map((e: any) => e.studentId) 
         : [];
       
       const available = result.data.filter(
-        (student: any) => !enrolledStudentIds.includes(student.id) && student.isActive
+        (student: Student) => !enrolledStudentIds.includes(student.id) && student.isActive
       );
       setAvailableStudents(available);
       setFilteredAvailableStudents(available);
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to fetch students');
     }
   };
 
@@ -128,58 +150,65 @@ const [selectedStudentId, setSelectedStudentId] = useState<string>('');
     setFilteredAvailableStudents(filtered);
   };
 
-const handleEnroll = async (studentId: number) => {
-    if (!selectedSection) {
-      toast.error('No section selected');
-      return;
-    }
-    
-    if (!studentId) {
-      toast.error('Invalid student ID');
-      return;
-    }
-    
-    console.log('Enrolling:', {
-      studentId,
+ const handleEnroll = async (studentId: number) => {
+  if (!selectedSection) {
+    toast.error('No section selected');
+    return;
+  }
+  
+  if (!studentId) {
+    toast.error('Invalid student ID');
+    return;
+  }
+  
+  console.log('Enrolling:', {
+    studentId,
+    sectionId: selectedSection.id,
+    semester: selectedSemester,
+    year: selectedYear
+  });
+  
+  setIsLoading(true);
+  
+  try {
+    // Fix: Pass an object instead of 4 separate arguments
+    const result = await enrollmentApi.enrollInSection({
+      studentId: studentId,
       sectionId: selectedSection.id,
       semester: selectedSemester,
-      year: selectedYear
-    });
+      academicYear: selectedYear
+    }) as ApiResponse;
     
-    setIsLoading(true);
-    
-    try {
-      const result = await enrollmentApi.enrollInSection(
-        studentId,
-        selectedSection.id,
-        selectedSemester,
-        selectedYear
-      );
-      
-      if (result.success) {
-        toast.success('Student enrolled successfully');
-        await fetchSectionStudents(selectedSection);
-        setShowStudentModal(false);
-        setSelectedStudentId('');
-        setSearchTerm('');
-      } else {
-        toast.error(result.message || 'Failed to enroll student');
-      }
-    } catch (error) {
-      console.error('Enroll error:', error);
+    if (result.success) {
+      toast.success('Student enrolled successfully');
+      await fetchSectionStudents(selectedSection);
+      setShowStudentModal(false);
+      setSelectedStudentId('');
+      setSearchTerm('');
+    } else if (!result.success && 'message' in result) {
+      toast.error(result.message || 'Failed to enroll student');
+    } else {
       toast.error('Failed to enroll student');
-    } finally {
-      setIsLoading(false);
     }
-  };
+  } catch (error) {
+    console.error('Enroll error:', error);
+    toast.error('Failed to enroll student');
+  } finally {
+    setIsLoading(false);
+  }
+};
   const handleWithdraw = async (enrollmentId: number, studentName: string) => {
     if (window.confirm(`Withdraw ${studentName} from this section?`)) {
-      const result = await enrollmentApi.dropSection(enrollmentId);
+      const result = await enrollmentApi.dropSection(enrollmentId) as ApiResponse;
       if (result.success) {
         toast.success('Student withdrawn successfully');
-        fetchSectionStudents(selectedSection!);
-      } else {
+        if (selectedSection) {
+          fetchSectionStudents(selectedSection);
+        }
+      } else if (!result.success && 'message' in result) {
         toast.error(result.message);
+      } else {
+        toast.error('Failed to withdraw student');
       }
     }
   };
@@ -434,87 +463,87 @@ const handleEnroll = async (studentId: number) => {
         </>
       )}
 
-   {/* Add Student Modal */}
-{showStudentModal && selectedSection && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div className="bg-white rounded-lg w-full max-w-md">
-      <div className="flex justify-between items-center p-6 border-b">
-        <div>
-          <h2 className="text-xl font-semibold">Enroll Student</h2>
-          <p className="text-sm text-gray-500">
-            {selectedSection.courseCode} - Section {selectedSection.sectionCode}
-          </p>
-        </div>
-        <button onClick={() => {
-          setShowStudentModal(false);
-          setSelectedStudentId('');
-          setSearchTerm('');
-        }} className="text-gray-400 hover:text-gray-600">
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-      <div className="p-6">
-        <div className="mb-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by name, ID, or email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border rounded-lg"
-            />
+      {/* Add Student Modal */}
+      {showStudentModal && selectedSection && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-md">
+            <div className="flex justify-between items-center p-6 border-b">
+              <div>
+                <h2 className="text-xl font-semibold">Enroll Student</h2>
+                <p className="text-sm text-gray-500">
+                  {selectedSection.courseCode} - Section {selectedSection.sectionCode}
+                </p>
+              </div>
+              <button onClick={() => {
+                setShowStudentModal(false);
+                setSelectedStudentId('');
+                setSearchTerm('');
+              }} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="mb-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by name, ID, or email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border rounded-lg"
+                  />
+                </div>
+              </div>
+              
+              {/* Student list */}
+              <div className="max-h-64 overflow-y-auto border rounded-lg divide-y">
+                {filteredAvailableStudents.length === 0 ? (
+                  <p className="text-center text-gray-500 p-4">
+                    {searchTerm 
+                      ? 'No students match your search' 
+                      : 'No available students to enroll'}
+                  </p>
+                ) : (
+                  filteredAvailableStudents.map((student) => (
+                    <div 
+                      key={student.id} 
+                      className="flex items-center justify-between p-3 hover:bg-gray-50"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 truncate">
+                          {student.fullName}
+                        </p>
+                        <p className="text-sm text-gray-500 truncate">
+                          {student.studentId} | {student.email}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          Year {student.academicYearLevel || 'N/A'} | {student.department || 'N/A'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          console.log('Enrolling student:', {
+                            studentId: student.id,
+                            sectionId: selectedSection?.id,
+                            semester: selectedSemester,
+                            year: selectedYear
+                          });
+                          handleEnroll(student.id);
+                        }}
+                        disabled={isLoading}
+                        className="ml-3 px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                      >
+                        {isLoading ? '...' : 'Enroll'}
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         </div>
-        
-        {/* ✅ Use individual buttons instead of select */}
-        <div className="max-h-64 overflow-y-auto border rounded-lg divide-y">
-          {filteredAvailableStudents.length === 0 ? (
-            <p className="text-center text-gray-500 p-4">
-              {searchTerm 
-                ? 'No students match your search' 
-                : 'No available students to enroll'}
-            </p>
-          ) : (
-            filteredAvailableStudents.map((student) => (
-              <div 
-                key={student.id} 
-                className="flex items-center justify-between p-3 hover:bg-gray-50"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 truncate">
-                    {student.fullName}
-                  </p>
-                  <p className="text-sm text-gray-500 truncate">
-                    {student.studentId} | {student.email}
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    Year {student.academicYearLevel || 'N/A'} | {student.department || 'N/A'}
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    console.log('Enrolling student:', {
-                      studentId: student.id,
-                      sectionId: selectedSection?.id,
-                      semester: selectedSemester,
-                      year: selectedYear
-                    });
-                    handleEnroll(student.id);
-                  }}
-                  disabled={isLoading}
-                  className="ml-3 px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                >
-                  {isLoading ? '...' : 'Enroll'}
-                </button>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+      )}
     </div>
   );
 };

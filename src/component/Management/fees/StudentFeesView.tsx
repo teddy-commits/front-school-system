@@ -4,15 +4,61 @@ import { financeApi } from '../../../api/modules/financeApi';
 import { registrationApi } from '../../../api/modules/registrationApi';
 import toast from 'react-hot-toast';
 
+interface Student {
+  id: number;
+  studentId: string;
+  fullName: string;
+  email: string;
+  department: string;
+  faculty: string;
+  enrollmentYear: number;
+  isActive: boolean;
+}
+
+interface Fee {
+  id: number;
+  feeType: string;
+  description: string;
+  amount: number;
+  paidAmount: number;
+  dueAmount: number;
+  status: string;
+  dueDate: string;
+  feeStructureId?: number;
+  semester?: string;
+  academicYear?: number;
+}
+
+interface FeeSummary {
+  totalFees: number;
+  totalPaid: number;
+  totalOutstanding: number;
+}
+
 interface StudentFeesViewProps {
   studentId: number;
   onClose: () => void;
 }
 
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const StudentFeesView: React.FC<StudentFeesViewProps> = ({ studentId, onClose }) => {
-  const [student, setStudent] = useState<any>(null);
-  const [fees, setFees] = useState<any[]>([]);
-  const [summary, setSummary] = useState<any>(null);
+  const [student, setStudent] = useState<Student | null>(null);
+  const [fees, setFees] = useState<Fee[]>([]);
+  const [summary, setSummary] = useState<FeeSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -22,28 +68,44 @@ const StudentFeesView: React.FC<StudentFeesViewProps> = ({ studentId, onClose })
   }, [studentId]);
 
   const fetchStudentData = async () => {
-    const result = await registrationApi.getStudentById(studentId);
-    if (result.success) setStudent(result.data);
+    const result = await registrationApi.getStudentById(studentId) as ApiResponse<Student>;
+    if (result.success && 'data' in result) {
+      setStudent(result.data);
+    } else if (!result.success && 'message' in result) {
+      toast.error(result.message);
+    }
   };
 
   const fetchFees = async () => {
-    const result = await financeApi.getStudentFees(studentId);
-    if (result.success) setFees(result.data);
+    const result = await financeApi.getStudentFees(studentId) as ApiResponse<Fee[]>;
+    if (result.success && 'data' in result) {
+      setFees(Array.isArray(result.data) ? result.data : []);
+    } else if (!result.success && 'message' in result) {
+      toast.error(result.message);
+    }
   };
 
   const fetchSummary = async () => {
-    const result = await financeApi.getStudentFeeSummary(studentId);
-    if (result.success) setSummary(result.data);
+    const result = await financeApi.getStudentFeeSummary(studentId) as ApiResponse<FeeSummary>;
+    if (result.success && 'data' in result) {
+      setSummary(result.data);
+    } else if (!result.success && 'message' in result) {
+      toast.error(result.message);
+    }
     setIsLoading(false);
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'ETB' }).format(amount || 0);
   };
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString();
+    try {
+      return new Date(dateString).toLocaleDateString();
+    } catch {
+      return 'Invalid date';
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -85,7 +147,7 @@ const StudentFeesView: React.FC<StudentFeesViewProps> = ({ studentId, onClose })
             <h2 className="text-xl font-semibold">Student Fee Details</h2>
             <p className="text-sm text-gray-500">{student?.fullName} - {student?.studentId}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -130,19 +192,19 @@ const StudentFeesView: React.FC<StudentFeesViewProps> = ({ studentId, onClose })
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <p className="text-xs text-gray-500">Student ID</p>
-                <p className="text-sm font-medium">{student?.studentId}</p>
+                <p className="text-sm font-medium">{student?.studentId || 'N/A'}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500">Full Name</p>
-                <p className="text-sm font-medium">{student?.fullName}</p>
+                <p className="text-sm font-medium">{student?.fullName || 'N/A'}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500">Department</p>
-                <p className="text-sm font-medium">{student?.department}</p>
+                <p className="text-sm font-medium">{student?.department || 'N/A'}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500">Faculty</p>
-                <p className="text-sm font-medium">{student?.faculty}</p>
+                <p className="text-sm font-medium">{student?.faculty || 'N/A'}</p>
               </div>
             </div>
           </div>
@@ -156,39 +218,47 @@ const StudentFeesView: React.FC<StudentFeesViewProps> = ({ studentId, onClose })
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fee Type</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Paid</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Due</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Amount (ETB)</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Paid (ETB)</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Due (ETB)</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Due Date</th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {fees.map((fee) => (
-                    <tr key={fee.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{fee.feeType}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{fee.description}</td>
-                      <td className="px-4 py-3 text-sm text-right font-medium">{formatCurrency(fee.amount)}</td>
-                      <td className="px-4 py-3 text-sm text-right text-green-600">{formatCurrency(fee.paidAmount)}</td>
-                      <td className="px-4 py-3 text-sm text-right font-semibold text-red-600">{formatCurrency(fee.dueAmount)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{formatDate(fee.dueDate)}</td>
-                      <td className="px-4 py-3 text-center">
-                        <div className="flex items-center justify-center space-x-1">
-                          {getStatusIcon(fee.status)}
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadge(fee.status)}`}>
-                            {fee.status}
-                          </span>
-                        </div>
+                  {fees.length > 0 ? (
+                    fees.map((fee) => (
+                      <tr key={fee.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{fee.feeType}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{fee.description}</td>
+                        <td className="px-4 py-3 text-sm text-right font-medium">{formatCurrency(fee.amount)}</td>
+                        <td className="px-4 py-3 text-sm text-right text-green-600">{formatCurrency(fee.paidAmount)}</td>
+                        <td className="px-4 py-3 text-sm text-right font-semibold text-red-600">{formatCurrency(fee.dueAmount)}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{formatDate(fee.dueDate)}</td>
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex items-center justify-center space-x-1">
+                            {getStatusIcon(fee.status)}
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadge(fee.status)}`}>
+                              {fee.status}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                        No fees found for this student
                       </td>
-                     </tr>
-                  ))}
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
         </div>
 
-        <div className="flex justify-end p-6 border-t">
+        <div className="flex justify-end p-6 border-t bg-gray-50">
           <button onClick={onClose} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">
             Close
           </button>

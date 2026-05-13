@@ -6,16 +6,56 @@ import toast from 'react-hot-toast';
 import ProcessPaymentModal from './ProcessPaymentModal';
 import PaymentDetailsModal from './PaymentDetailsModal';
 
+interface Payment {
+  id: number;
+  transactionId: string;
+  studentId: number;
+  studentName: string;
+  amount: number;
+  paymentMethod: string;
+  studentIdNumber: string;
+  status: string;
+  referenceNumber: string;
+  receiptNumber: string;
+  paymentDate: string;
+  feeDescription: string;
+}
+
+interface Student {
+  id: number;
+  fullName: string;
+  studentId: string;
+  email: string;
+  department: string;
+  faculty: string;
+  isActive: boolean;
+}
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const PaymentManagement: React.FC = () => {
-  const [payments, setPayments] = useState<any[]>([]);
-  const [filteredPayments, setFilteredPayments] = useState<any[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [filteredPayments, setFilteredPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMethod, setSelectedMethod] = useState('ALL');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState<any>(null);
-  const [students, setStudents] = useState<any[]>([]);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [students, setStudents] = useState<Student[]>([]);
 
   const paymentMethods = ['ALL', 'BANK_TRANSFER', 'CREDIT_CARD', 'MOBILE_MONEY', 'CASH', 'CHECK'];
 
@@ -30,14 +70,24 @@ const PaymentManagement: React.FC = () => {
 
   const fetchPayments = async () => {
     setIsLoading(true);
-    const result = await financeApi.getAllPayments();
-    if (result.success) setPayments(result.data);
+    const result = await financeApi.getAllPayments() as ApiResponse<Payment[]>;
+    if (result.success && 'data' in result) {
+      setPayments(Array.isArray(result.data) ? result.data : []);
+    } else if (!result.success && 'message' in result) {
+      toast.error(result.message);
+    } else {
+      toast.error('Failed to fetch payments');
+    }
     setIsLoading(false);
   };
 
   const fetchStudents = async () => {
-    const result = await registrationApi.getAllStudents();
-    if (result.success) setStudents(result.data);
+    const result = await registrationApi.getAllStudents() as ApiResponse<Student[]>;
+    if (result.success && 'data' in result) {
+      setStudents(Array.isArray(result.data) ? result.data : []);
+    } else if (!result.success && 'message' in result) {
+      toast.error(result.message);
+    }
   };
 
   const filterPayments = () => {
@@ -54,29 +104,46 @@ const PaymentManagement: React.FC = () => {
     setFilteredPayments(filtered);
   };
 
-  const handleViewDetails = (payment: any) => {
+  const handleViewDetails = (payment: Payment) => {
     setSelectedPayment(payment);
     setShowDetailsModal(true);
   };
 
   const handleDownloadReceipt = async (paymentId: number, transactionId: string) => {
-    const result = await financeApi.downloadReceipt(paymentId);
-    if (result.success) {
-      const url = window.URL.createObjectURL(new Blob([result.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `receipt_${transactionId}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      toast.success('Receipt downloaded successfully');
-    } else {
-      toast.error(result.message);
+    try {
+      const result = await financeApi.downloadReceipt(paymentId) as ApiResponse<Blob>;
+      if (result.success && 'data' in result) {
+        const url = window.URL.createObjectURL(new Blob([result.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `receipt_${transactionId}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+        toast.success('Receipt downloaded successfully');
+      } else if (!result.success && 'message' in result) {
+        toast.error(result.message);
+      } else {
+        toast.error('Failed to download receipt');
+      }
+    } catch (error) {
+      console.error('Error downloading receipt:', error);
+      toast.error('Failed to download receipt');
     }
   };
 
-  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'ETB' }).format(amount);
-  const formatDate = (date: string) => new Date(date).toLocaleDateString();
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'ETB' }).format(amount || 0);
+  };
+  
+  const formatDate = (date: string) => {
+    try {
+      return new Date(date).toLocaleDateString();
+    } catch {
+      return 'Invalid date';
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     return status === 'PAID' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
@@ -104,7 +171,9 @@ const PaymentManagement: React.FC = () => {
           <div className="flex justify-between">
             <div>
               <p className="text-sm text-gray-500">Total Revenue</p>
-              <p className="text-2xl font-bold text-green-600">{formatCurrency(payments.reduce((sum, p) => sum + p.amount, 0))}</p>
+              <p className="text-2xl font-bold text-green-600">
+                {formatCurrency(payments.reduce((sum, p) => sum + (p.amount || 0), 0))}
+              </p>
             </div>
             <DollarSign className="w-8 h-8 text-green-500" />
           </div>
@@ -123,7 +192,16 @@ const PaymentManagement: React.FC = () => {
             <div>
               <p className="text-sm text-gray-500">This Month</p>
               <p className="text-2xl font-bold text-purple-600">
-                {formatCurrency(payments.filter(p => new Date(p.paymentDate).getMonth() === new Date().getMonth()).reduce((sum, p) => sum + p.amount, 0))}
+                {formatCurrency(payments
+                  .filter(p => {
+                    try {
+                      return new Date(p.paymentDate).getMonth() === new Date().getMonth();
+                    } catch {
+                      return false;
+                    }
+                  })
+                  .reduce((sum, p) => sum + (p.amount || 0), 0)
+                )}
               </p>
             </div>
             <Calendar className="w-8 h-8 text-purple-500" />
@@ -141,17 +219,20 @@ const PaymentManagement: React.FC = () => {
               placeholder="Search by student name or transaction ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border rounded-lg"
+              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
             />
           </div>
           <select
             value={selectedMethod}
             onChange={(e) => setSelectedMethod(e.target.value)}
-            className="px-4 py-2 border rounded-lg w-48"
+            className="px-4 py-2 border rounded-lg w-48 focus:ring-2 focus:ring-emerald-500"
           >
             {paymentMethods.map(m => <option key={m} value={m}>{m === 'ALL' ? 'All Methods' : m}</option>)}
           </select>
-          <button onClick={fetchPayments} className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">
+          <button 
+            onClick={fetchPayments} 
+            className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+          >
             <RefreshCw className="w-4 h-4" />
           </button>
         </div>
@@ -162,6 +243,11 @@ const PaymentManagement: React.FC = () => {
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+          </div>
+        ) : filteredPayments.length === 0 ? (
+          <div className="text-center py-12">
+            <CreditCard className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500">No payments found</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -194,14 +280,14 @@ const PaymentManagement: React.FC = () => {
                       <div className="flex justify-center space-x-2">
                         <button
                           onClick={() => handleViewDetails(p)}
-                          className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                          className="p-1 text-blue-600 hover:bg-blue-50 rounded transition"
                           title="View Details"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDownloadReceipt(p.id, p.transactionId)}
-                          className="p-1 text-emerald-600 hover:bg-emerald-50 rounded"
+                          className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition"
                           title="Download Receipt"
                         >
                           <Receipt className="w-4 h-4" />

@@ -6,6 +6,21 @@ import { courseApi } from '../../../api/modules/courseApi';
 import { BookOpen, Users, Clock, MapPin, User, Calendar, CheckCircle, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+// Define proper types for API responses
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 interface Section {
   id: number;
   courseId: number;
@@ -22,6 +37,11 @@ interface Section {
   room: string;
   status: string;
   hasAvailableSeats: boolean;
+}
+
+interface Enrollment {
+  id: number;
+  section: Section;
 }
 
 const StudentSectionEnrollment: React.FC = () => {
@@ -52,48 +72,53 @@ const StudentSectionEnrollment: React.FC = () => {
   };
 
   const fetchAvailableSections = async () => {
-    const result = await sectionApi.getOpenSections(selectedSemester, selectedYear);
-    if (result.success) {
+    const result = await sectionApi.getOpenSections(selectedSemester, selectedYear) as ApiResponse<Section[]>;
+    if (result.success && 'data' in result) {
       setSections(result.data);
     }
   };
 
   const fetchMyEnrollments = async () => {
-    const result = await enrollmentApi.getStudentSectionEnrollments(userId!);
-    if (result.success) {
-      setMyEnrollments(result.data.map((e: any) => e.section));
+    const result = await enrollmentApi.getStudentSectionEnrollments(userId!) as ApiResponse<Enrollment[]>;
+    if (result.success && 'data' in result) {
+      setMyEnrollments(result.data.map((e: Enrollment) => e.section));
     }
   };
 
   const fetchCourses = async () => {
-    const result = await courseApi.getAllCourses();
-    if (result.success) {
+    const result = await courseApi.getAllCourses() as ApiResponse<any[]>;
+    if (result.success && 'data' in result) {
       setCourses(result.data);
     }
   };
 
-  const handleEnroll = async (sectionId: number) => {
-    const result = await enrollmentApi.enrollInSection({
-      studentId: userId!,
-      sectionId: sectionId
-    });
-    
-    if (result.success) {
-      toast.success(result.data.message);
-      fetchData();
-    } else {
-      toast.error(result.message);
-    }
-  };
-
+ const handleEnroll = async (sectionId: number) => {
+  const result = await enrollmentApi.enrollInSection({
+    studentId: userId!,
+    sectionId: sectionId,
+    semester: selectedSemester,
+    academicYear: selectedYear
+  }) as ApiResponse<{ message: string }>;
+  
+  if (result.success && 'data' in result) {
+    toast.success(result.data.message);
+    fetchData();
+  } else if (!result.success && 'message' in result) {
+    toast.error(result.message);
+  } else {
+    toast.error('Enrollment failed. Please try again.');
+  }
+};
   const handleDrop = async (enrollmentId: number) => {
     if (window.confirm('Are you sure you want to drop this course?')) {
-      const result = await enrollmentApi.dropSection(enrollmentId);
+      const result = await enrollmentApi.dropSection(enrollmentId) as ApiResponse;
       if (result.success) {
         toast.success('Course dropped successfully');
         fetchData();
-      } else {
+      } else if (!result.success && 'message' in result) {
         toast.error(result.message);
+      } else {
+        toast.error('Failed to drop course. Please try again.');
       }
     }
   };

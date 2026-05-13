@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+// Define proper types
 interface Course {
   id: number;
   courseCode: string;
@@ -24,6 +25,7 @@ interface Course {
   department: string;
   schedule: string;
   instructorName: string;
+  status?: string;
   hasAvailableSeats: boolean;
 }
 
@@ -35,11 +37,48 @@ interface CartItem {
   fee: number;
 }
 
+interface RegistrationData {
+  id: number;
+  studentId: number;
+  semester: string;
+  academicYear: number;
+  status: 'PENDING' | 'COMPLETED' | 'PAID' | 'CANCELLED';
+  totalCredits: number;
+  totalFees: number;
+  courses?: Array<{
+    courseId: number;
+    courseCode: string;
+    courseName: string;
+    credits: number;
+    fee: number;
+  }>;
+}
+
+interface CanRegisterResponse {
+  canRegister: boolean;
+  message?: string;
+}
+
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const SemesterRegistration: React.FC = () => {
   const { userId } = useAuth();
   const [availableCourses, setAvailableCourses] = useState<Course[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [currentRegistration, setCurrentRegistration] = useState<any>(null);
+  const [currentRegistration, setCurrentRegistration] = useState<RegistrationData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSemester, setSelectedSemester] = useState('FALL');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -62,29 +101,29 @@ const SemesterRegistration: React.FC = () => {
   }, [userId, selectedSemester, selectedYear]);
 
   const checkRegistrationStatus = async () => {
-    const result = await semesterRegistrationApi.canRegister(userId!, selectedSemester, selectedYear);
-    if (result.success) {
+    const result = await semesterRegistrationApi.canRegister(userId!, selectedSemester, selectedYear) as ApiResponse<CanRegisterResponse>;
+    if (result.success && 'data' in result) {
       setCanRegister(result.data.canRegister);
     }
   };
 
   const fetchAvailableCourses = async () => {
-    const result = await courseApi.getAllCourses();
-    if (result.success) {
+    const result = await courseApi.getAllCourses() as ApiResponse<Course[]>;
+    if (result.success && 'data' in result) {
       // Filter courses that are open for registration
-      const openCourses = result.data.filter((c: any) => c.status === 'OPEN');
+      const openCourses = result.data.filter((c: Course) => c.status === 'OPEN');
       setAvailableCourses(openCourses);
     }
   };
 
   const fetchCurrentRegistration = async () => {
     setIsLoading(true);
-    const result = await semesterRegistrationApi.getCurrentRegistration(userId!);
-    if (result.success && result.data) {
+    const result = await semesterRegistrationApi.getCurrentRegistration(userId!) as ApiResponse<RegistrationData>;
+    if (result.success && 'data' in result && result.data) {
       setCurrentRegistration(result.data);
       // Load existing cart items
-      if (result.data.courses) {
-        const cartItems = result.data.courses.map((c: any) => ({
+      if (result.data.courses && Array.isArray(result.data.courses)) {
+        const cartItems: CartItem[] = result.data.courses.map((c: any) => ({
           courseId: c.courseId,
           courseCode: c.courseCode,
           courseName: c.courseName,
@@ -93,6 +132,8 @@ const SemesterRegistration: React.FC = () => {
         }));
         setCart(cartItems);
       }
+    } else if (!result.success && 'message' in result) {
+      console.error('Failed to fetch current registration:', result.message);
     }
     setIsLoading(false);
   };
@@ -139,14 +180,16 @@ const SemesterRegistration: React.FC = () => {
       semester: selectedSemester,
       academicYear: selectedYear,
       courseIds: cart.map(item => item.courseId)
-    });
+    }) as ApiResponse<RegistrationData>;
 
-    if (result.success) {
+    if (result.success && 'data' in result) {
       setCurrentRegistration(result.data);
       toast.success('Registration initiated successfully!');
       fetchCurrentRegistration();
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to initiate registration');
     }
     setIsProcessing(false);
   };
@@ -158,13 +201,15 @@ const SemesterRegistration: React.FC = () => {
     }
 
     setIsProcessing(true);
-    const result = await semesterRegistrationApi.completeRegistration(currentRegistration.id);
-    if (result.success) {
+    const result = await semesterRegistrationApi.completeRegistration(currentRegistration.id) as ApiResponse<RegistrationData>;
+    if (result.success && 'data' in result) {
       setCurrentRegistration(result.data);
       toast.success('Registration completed! Please proceed to payment.');
       setShowPaymentModal(true);
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to complete registration');
     }
     setIsProcessing(false);
   };
@@ -177,18 +222,20 @@ const SemesterRegistration: React.FC = () => {
 
     setIsProcessing(true);
     const result = await semesterRegistrationApi.processPayment(
-      currentRegistration.id,
+      currentRegistration!.id,
       paymentReference,
       calculateTotalFees()
-    );
+    ) as ApiResponse<RegistrationData>;
 
-    if (result.success) {
+    if (result.success && 'data' in result) {
       setCurrentRegistration(result.data);
       toast.success('Payment processed successfully!');
       setShowPaymentModal(false);
       fetchCurrentRegistration();
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to process payment');
     }
     setIsProcessing(false);
   };
@@ -229,7 +276,7 @@ const SemesterRegistration: React.FC = () => {
             value={selectedSemester}
             onChange={(e) => setSelectedSemester(e.target.value)}
             className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-            disabled={currentRegistration && currentRegistration.status !== 'PAID'}
+            disabled={currentRegistration !== null && currentRegistration.status !== 'PAID'}
           >
             {semesters.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
@@ -237,7 +284,7 @@ const SemesterRegistration: React.FC = () => {
             value={selectedYear}
             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
             className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-            disabled={currentRegistration && currentRegistration.status !== 'PAID'}
+           disabled={currentRegistration !== null && currentRegistration.status !== 'PAID'}
           >
             {years.map(y => <option key={y} value={y}>{y}</option>)}
           </select>

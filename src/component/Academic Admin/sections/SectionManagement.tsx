@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Users, Calendar, RefreshCw, X ,Eye} from 'lucide-react';
+import { Plus, Edit, Trash2, Users, Calendar, RefreshCw, X, Eye } from 'lucide-react';
 import { sectionApi } from '../../../api/modules/sectionApi';
 import { departmentApi } from '../../../api/modules/departmentApi';
 import SectionDetailsModal from './SectionDetailsModal';
@@ -30,6 +30,21 @@ interface Department {
   isActive: boolean;
 }
 
+// API Response types
+interface ApiSuccessResponse<T = any> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface ApiErrorResponse {
+  success: false;
+  message: string;
+  status: number;
+}
+
+type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+
 const SectionManagement: React.FC = () => {
   const [sections, setSections] = useState<Section[]>([]);
   const [filteredSections, setFilteredSections] = useState<Section[]>([]);
@@ -43,7 +58,7 @@ const SectionManagement: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingSection, setEditingSection] = useState<Section | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-const [selectedSectionForDetails, setSelectedSectionForDetails] = useState<Section | null>(null);
+  const [selectedSectionForDetails, setSelectedSectionForDetails] = useState<Section | null>(null);
 
   const yearLevels = ['ALL', '1', '2', '3', '4', '5'];
   const semesters = ['ALL', 'FALL', 'SPRING', 'SUMMER'];
@@ -66,18 +81,20 @@ const [selectedSectionForDetails, setSelectedSectionForDetails] = useState<Secti
   };
 
   const fetchAllSections = async () => {
-    const result = await sectionApi.getAllSections();
-    if (result.success) {
-      setSections(result.data);
-    } else {
+    const result = await sectionApi.getAllSections() as ApiResponse<Section[]>;
+    if (result.success && 'data' in result) {
+      setSections(Array.isArray(result.data) ? result.data : []);
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message || 'Failed to fetch sections');
+    } else {
+      toast.error('Failed to fetch sections');
     }
   };
 
   const fetchDepartments = async () => {
-    const result = await departmentApi.getActiveDepartments();
-    if (result.success) {
-      setDepartments(result.data);
+    const result = await departmentApi.getActiveDepartments() as ApiResponse<Department[]>;
+    if (result.success && 'data' in result) {
+      setDepartments(Array.isArray(result.data) ? result.data : []);
     }
   };
 
@@ -109,27 +126,32 @@ const [selectedSectionForDetails, setSelectedSectionForDetails] = useState<Secti
 
   const handleDelete = async (id: number, sectionCode: string) => {
     if (window.confirm(`Delete section "${sectionCode}"? This will also remove all student enrollments.`)) {
-      const result = await sectionApi.deleteSection(id);
+      const result = await sectionApi.deleteSection(id) as ApiResponse;
       if (result.success) {
         toast.success('Section deleted successfully');
         fetchAllSections();
-      } else {
+      } else if (!result.success && 'message' in result) {
         toast.error(result.message);
+      } else {
+        toast.error('Failed to delete section');
       }
     }
   };
-const handleViewDetails = (section: Section) => {
-  setSelectedSectionForDetails(section);
-  setShowDetailsModal(true);
-};
+
+  const handleViewDetails = (section: Section) => {
+    setSelectedSectionForDetails(section);
+    setShowDetailsModal(true);
+  };
 
   const handleUpdateStatus = async (id: number, newStatus: string) => {
-    const result = await sectionApi.updateSectionStatus(id, newStatus);
+    const result = await sectionApi.updateSectionStatus(id, newStatus) as ApiResponse;
     if (result.success) {
       toast.success(`Section status updated to ${newStatus}`);
       fetchAllSections();
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to update status');
     }
   };
 
@@ -167,6 +189,7 @@ const handleViewDetails = (section: Section) => {
 
   return (
     <div>
+      {/* Rest of the JSX remains exactly the same */}
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-xl font-semibold text-gray-800">Section Management</h2>
@@ -353,12 +376,12 @@ const handleViewDetails = (section: Section) => {
                           <Trash2 className="w-4 h-4" />
                         </button>
                         <button
-  onClick={() => handleViewDetails(section)}
-  className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-  title="View Details"
->
-  <Eye className="w-4 h-4" />
-</button>
+                          onClick={() => handleViewDetails(section)}
+                          className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                          title="View Details"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -397,23 +420,23 @@ const handleViewDetails = (section: Section) => {
           }}
         />
       )}
-       {showDetailsModal && selectedSectionForDetails && (
-      <SectionDetailsModal
-        section={selectedSectionForDetails}
-        onClose={() => {
-          setShowDetailsModal(false);
-          setSelectedSectionForDetails(null);
-        }}
-        onUpdate={() => {
-          fetchAllSections();
-        }}
-      />
-    )}
+      {showDetailsModal && selectedSectionForDetails && (
+        <SectionDetailsModal
+          section={selectedSectionForDetails}
+          onClose={() => {
+            setShowDetailsModal(false);
+            setSelectedSectionForDetails(null);
+          }}
+          onUpdate={() => {
+            fetchAllSections();
+          }}
+        />
+      )}
     </div>
   );
 };
 
-// Create Section Modal (Simplified)
+// Create Section Modal
 const CreateSectionModal: React.FC<{
   departments: Department[];
   onClose: () => void;
@@ -451,14 +474,16 @@ const CreateSectionModal: React.FC<{
       maxStudents: parseInt(formData.maxStudents.toString()),
       academicYear: parseInt(formData.academicYear.toString()),
       academicYearLevel: parseInt(formData.academicYearLevel)
-    });
+    }) as ApiResponse;
     
     if (result.success) {
       toast.success(`Section ${formData.sectionCode} created successfully`);
       onSuccess();
       onClose();
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to create section');
     }
     setIsLoading(false);
   };
@@ -618,14 +643,16 @@ const EditSectionModal: React.FC<{
       maxStudents: parseInt(formData.maxStudents.toString()),
       academicYear: parseInt(formData.academicYear.toString()),
       academicYearLevel: parseInt(formData.academicYearLevel)
-    });
+    }) as ApiResponse;
     
     if (result.success) {
       toast.success('Section updated successfully');
       onSuccess();
       onClose();
-    } else {
+    } else if (!result.success && 'message' in result) {
       toast.error(result.message);
+    } else {
+      toast.error('Failed to update section');
     }
     setIsLoading(false);
   };
@@ -722,7 +749,6 @@ const EditSectionModal: React.FC<{
               {statuses.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
-          
 
           <div className="flex justify-end space-x-3 pt-4">
             <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
@@ -730,9 +756,7 @@ const EditSectionModal: React.FC<{
               {isLoading ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
-          
         </form>
-        
       </div>
     </div>
   );
@@ -743,8 +767,6 @@ const Search: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
   </svg>
-  
 );
-
 
 export default SectionManagement;
