@@ -31,7 +31,7 @@ const StudentCourses: React.FC = () => {
   const fetchEnrollments = async () => {
     setIsLoading(true);
     try {
-      const result = await enrollmentApi.getStudentEnrollments(userId!);
+      const result = await enrollmentApi.getStudentCourseEnrollments(userId!);
       if (result.success) {
         setEnrollments(result.data);
       } else {

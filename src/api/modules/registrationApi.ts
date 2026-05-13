@@ -10,8 +10,6 @@ export const registrationApi = {
       return handleApiError(error);
     }
   },
-
-  // Get all students (Requires authentication - Admin only)
   getAllStudents: async () => {
     try {
       const response = await apiClient.get('/registration/students/');
@@ -179,7 +177,35 @@ export const registrationApi = {
       return handleApiError(error);
     }
   },
+// Get academic administrators
+getAcademicAdministrators: async () => {
+    try {
+      const response = await apiClient.get('/admin/users/academic-administrators');
+      return { success: true, data: response.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
 
+// Get management staff
+getManagementStaff: async () => {
+    try {
+      const response = await apiClient.get('/admin/users/management');
+      return { success: true, data: response.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+// ✅ NEW: Get ALL users (all roles)
+getAllUsers: async () => {
+    try {
+      const response = await apiClient.get('/admin/users');
+      return { success: true, data: response.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
   // Deactivate user
   deactivateUser: async (id) => {
     try {

@@ -1,7 +1,6 @@
 import apiClient, { handleApiError } from '../client';
 
 export const semesterRegistrationApi = {
-  // Initiate semester registration
   initiateRegistration: async (data: {
     studentId: number;
     semester: string;
@@ -9,34 +8,31 @@ export const semesterRegistrationApi = {
     courseIds: number[];
   }) => {
     try {
-      const response = await apiClient.post('/api/v1/semester-registration/initiate', data);
+      const response = await apiClient.post('/semester-registration/initiate', data);
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);
     }
   },
 
-  // Add courses to existing registration
   addCourses: async (registrationId: number, courseIds: number[]) => {
     try {
-      const response = await apiClient.post(`/api/v1/semester-registration/${registrationId}/courses`, courseIds);
+      const response = await apiClient.post(`/semester-registration/${registrationId}/courses`, courseIds);
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);
     }
   },
 
-  // Remove course from registration
   removeCourse: async (registrationId: number, courseId: number) => {
     try {
-      const response = await apiClient.delete(`/api/v1/semester-registration/${registrationId}/courses/${courseId}`);
+      const response = await apiClient.delete(`/semester-registration/${registrationId}/courses/${courseId}`);
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);
     }
   },
 
-  // Complete registration
   completeRegistration: async (registrationId: number) => {
     try {
       const response = await apiClient.post(`/api/v1/semester-registration/${registrationId}/complete`);
@@ -46,11 +42,10 @@ export const semesterRegistrationApi = {
     }
   },
 
-  // Process payment
   processPayment: async (registrationId: number, paymentReference: string, amount: number) => {
     try {
       const response = await apiClient.post(
-        `/api/v1/semester-registration/${registrationId}/pay?paymentReference=${paymentReference}&amount=${amount}`
+        `/semester-registration/${registrationId}/pay?paymentReference=${paymentReference}&amount=${amount}`
       );
       return { success: true, data: response.data };
     } catch (error) {
@@ -58,10 +53,9 @@ export const semesterRegistrationApi = {
     }
   },
 
-  // Get student's semester registrations
   getStudentRegistrations: async (studentId: number) => {
     try {
-      const response = await apiClient.get(`/api/v1/semester-registration/students/${studentId}`);
+      const response = await apiClient.get(`/semester-registration/students/${studentId}`);
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);
@@ -71,7 +65,7 @@ export const semesterRegistrationApi = {
   // Get current semester registration
   getCurrentRegistration: async (studentId: number) => {
     try {
-      const response = await apiClient.get(`/api/v1/semester-registration/students/${studentId}/current`);
+      const response = await apiClient.get(`/semester-registration/students/${studentId}/current`);
       if (response.status === 204) {
         return { success: true, data: null };
       }
@@ -81,11 +75,10 @@ export const semesterRegistrationApi = {
     }
   },
 
-  // Check if student can register for semester
   canRegister: async (studentId: number, semester: string, academicYear: number) => {
     try {
       const response = await apiClient.get(
-        `/api/v1/semester-registration/students/${studentId}/can-register?semester=${semester}&academicYear=${academicYear}`
+        `/semester-registration/students/${studentId}/can-register?semester=${semester}&academicYear=${academicYear}`
       );
       return { success: true, data: response.data };
     } catch (error) {

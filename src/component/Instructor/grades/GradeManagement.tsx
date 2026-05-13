@@ -10,9 +10,11 @@ import StudentGradesView from './StudentGradesView';
 
 interface GradeManagementProps {
   assignedCourses: any[];
+  semester: string;      // ✅ Add
+  academicYear: number;  // ✅ Add
 }
-
-const GradeManagement: React.FC<GradeManagementProps> = ({ assignedCourses }) => {
+const GradeManagement: React.FC<GradeManagementProps> = ({ assignedCourses, semester, academicYear }) => {
+    console.log('🏗️ GradeManagement rendered with:', { assignedCourses, semester, academicYear });
   const [selectedCourse, setSelectedCourse] = useState<string>('');
   const [students, setStudents] = useState<any[]>([]);
   const [grades, setGrades] = useState<any[]>([]);
@@ -26,38 +28,83 @@ const GradeManagement: React.FC<GradeManagementProps> = ({ assignedCourses }) =>
 
  // In GradeManagement.tsx, when fetching enrollments
 const fetchCourseData = async (courseCode: string) => {
-  if (!courseCode) return;
+  if (!courseCode) {
+    console.log('❌ No course code provided');
+    return;
+  }
   
   setIsLoading(true);
   try {
-    // Fetch enrolled students
-    const enrollmentsResult = await enrollmentApi.getCourseEnrollments(courseCode);
+    console.log('📚 Fetching data for course code:', courseCode);
+    console.log('📋 assignedCourses:', assignedCourses);
+    
+    // Find course
+    const course = assignedCourses.find(c => {
+      console.log('  Comparing:', c.courseCode, '===', courseCode);
+      return c.courseCode === courseCode;
+    });
+    
+    console.log('🎯 Found course:', course);
+    console.log('  course.id:', course?.id);
+    console.log('  course.sectionId:', course?.sectionId);
+    console.log('  semester:', semester);
+    console.log('  academicYear:', academicYear);
+    
+    if (!course) {
+      console.error('❌ Course not found in assignedCourses');
+      toast.error('Course not found');
+      setIsLoading(false);
+      return;
+    }
+    
+    // ✅ Call API
+    console.log('🔗 Calling API with:', {
+      courseId: course.id,
+      semester: semester,
+      academicYear: academicYear,
+      sectionId: course.sectionId
+    });
+    
+    const enrollmentsResult = await enrollmentApi.getCourseEnrollments(
+      course.id,
+      semester,
+      academicYear,
+      course.sectionId
+    );
+    
+    console.log('📨 API Response:', enrollmentsResult);
+    
     if (enrollmentsResult.success) {
-      // Map the enrollment data to ensure consistent structure
+      console.log('✅ Students data:', enrollmentsResult.data);
       const mappedStudents = enrollmentsResult.data.map((enrollment: any) => ({
         id: enrollment.id,
-        studentId: enrollment.studentId,  // Make sure this exists
+        studentId: enrollment.studentId,
         studentIdNumber: enrollment.studentIdNumber || enrollment.studentId,
         studentName: enrollment.studentName || enrollment.fullName,
         email: enrollment.email,
         status: enrollment.status
       }));
+      console.log('🔄 Mapped students:', mappedStudents);
       setStudents(mappedStudents);
+    } else {
+      console.error('❌ API Error:', enrollmentsResult.message);
+      toast.error(enrollmentsResult.message || 'Failed to load students');
     }
     
-    // Fetch existing grades
+    // Fetch grades
+    console.log('📝 Fetching grades for:', courseCode);
     const gradesResult = await gradeApi.getCourseGrades(courseCode);
+    console.log('📝 Grades result:', gradesResult);
     if (gradesResult.success) {
       setGrades(gradesResult.data);
     }
   } catch (error) {
-    console.error('Error fetching course data:', error);
+    console.error('💥 Error:', error);
     toast.error('Failed to load course data');
   } finally {
     setIsLoading(false);
   }
 };
-
   const handleCourseChange = (courseCode: string) => {
     setSelectedCourse(courseCode);
     const course = assignedCourses.find(c => c.courseCode === courseCode);

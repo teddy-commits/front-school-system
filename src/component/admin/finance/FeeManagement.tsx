@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Plus, Edit, Trash2, Search, DollarSign, 
-  RefreshCw, X, CheckCircle, AlertCircle
+  RefreshCw, X, CheckCircle, AlertCircle,Banknote
 } from 'lucide-react';
 import { financeApi } from '../../../api/modules/financeApi';
 import { registrationApi } from '../../../api/modules/registrationApi';
@@ -135,8 +135,13 @@ const FeeManagement: React.FC = () => {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
+ const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', { 
+      style: 'currency', 
+      currency: 'ETB',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount || 0);
   };
 
   const formatDate = (dateString: string) => {
@@ -213,7 +218,7 @@ const FeeManagement: React.FC = () => {
                 {formatCurrency(calculateTotalRevenue())}
               </p>
             </div>
-            <DollarSign className="w-8 h-8 text-green-500" />
+            <Banknote className="w-8 h-8 text-blue-500" />
           </div>
         </div>
         <div className="bg-white rounded-lg shadow p-4">

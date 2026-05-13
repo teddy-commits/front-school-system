@@ -38,11 +38,27 @@ const UserManagement: React.FC = () => {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      // Fetch all instructors
-      const instructorsResult = await registrationApi.getAllInstructors();
+      // Fetch ALL user types
+      const [instructorsResult, adminsResult, managementResult] = await Promise.all([
+        registrationApi.getAllInstructors(),
+        // Add these API calls if they exist, or create them
+        registrationApi.getAcademicAdministrators?.() || Promise.resolve({ success: true, data: [] }),
+        registrationApi.getManagementStaff?.() || Promise.resolve({ success: true, data: [] }),
+      ]);
+      
+      let allUsers: User[] = [];
+      
       if (instructorsResult.success) {
-        setUsers(instructorsResult.data);
+        allUsers = [...allUsers, ...instructorsResult.data];
       }
+      if (adminsResult.success) {
+        allUsers = [...allUsers, ...adminsResult.data];
+      }
+      if (managementResult.success) {
+        allUsers = [...allUsers, ...managementResult.data];
+      }
+      
+      setUsers(allUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error('Failed to load users');
@@ -50,7 +66,6 @@ const UserManagement: React.FC = () => {
       setIsLoading(false);
     }
   };
-
   const filterUsers = () => {
     let filtered = [...users];
     
