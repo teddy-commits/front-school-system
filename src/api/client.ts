@@ -1,8 +1,6 @@
-// src/api/client.ts
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-// Updated for Render deployment
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
 const AUTH_URL = import.meta.env.VITE_AUTH_URL || 'http://localhost:8080';
 const API_TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT || '30000');
@@ -13,17 +11,19 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Important for CORS
+  withCredentials: true,
 });
 
 export const authClient = axios.create({
-  baseURL: AUTH_URL,  // Use AUTH_URL for auth endpoints
+  baseURL: API_BASE_URL,
   timeout: API_TIMEOUT,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,
+  withCredentials: true, // Important for CORS
 });
+
+// Rest of your client.ts code remains the same...
 
 // Request interceptor - Add Auth Token
 apiClient.interceptors.request.use(
@@ -83,6 +83,8 @@ apiClient.interceptors.response.use(
   }
 );
 
+// Helper function to handle API errors
+// Replace your existing handleApiError function with this:
 export const handleApiError = (error: unknown) => {
   if (axios.isAxiosError(error)) {
     if (error.response) {
@@ -109,6 +111,8 @@ export const handleApiError = (error: unknown) => {
   };
 };
 
+
+// Export types
 export type ApiResult<T> = {
   success: true;
   data: T;
