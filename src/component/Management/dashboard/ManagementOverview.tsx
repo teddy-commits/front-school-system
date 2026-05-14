@@ -14,7 +14,7 @@ interface ManagementOverviewProps {
 
 const ManagementOverview: React.FC<ManagementOverviewProps> = ({ stats, isLoading }) => {
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'ETB' }).format(amount);
   };
 
   const statCards = [
@@ -70,7 +70,7 @@ const ManagementOverview: React.FC<ManagementOverviewProps> = ({ stats, isLoadin
         <div className="bg-white rounded-lg shadow">
           <div className="p-4 border-b"><h3 className="font-semibold text-gray-800">Recent Activity</h3></div>
           <div className="divide-y">
-            <div className="p-4"><div className="flex justify-between"><span className="text-sm text-gray-600">New payment received</span><span className="text-xs text-gray-400">2 min ago</span></div><p className="text-xs text-gray-500 mt-1">Student: John Doe - $25,000</p></div>
+            <div className="p-4"><div className="flex justify-between"><span className="text-sm text-gray-600">New payment received</span><span className="text-xs text-gray-400">2 min ago</span></div><p className="text-xs text-gray-500 mt-1">Student: John Doe - ETB 25,000.00</p></div>
             <div className="p-4"><div className="flex justify-between"><span className="text-sm text-gray-600">Invoice generated</span><span className="text-xs text-gray-400">1 hour ago</span></div><p className="text-xs text-gray-500 mt-1">Semester: Fall 2024</p></div>
             <div className="p-4"><div className="flex justify-between"><span className="text-sm text-gray-600">Fee structure updated</span><span className="text-xs text-gray-400">3 hours ago</span></div><p className="text-xs text-gray-500 mt-1">Tuition fee updated</p></div>
           </div>
