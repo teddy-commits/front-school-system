@@ -31,7 +31,6 @@ interface Student {
   isActive: boolean;
 }
 
-// API Response types
 interface ApiSuccessResponse<T = any> {
   success: true;
   data: T;
@@ -53,10 +52,20 @@ const AcademicAdminDashboard: React.FC = () => {
   const [totalStudents, setTotalStudents] = useState(0);
   const [totalEnrollments, setTotalEnrollments] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     fetchDashboardStats();
-  }, []);
+    setIsMobileMenuOpen(false);
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [location.pathname]);
 
   const fetchDashboardStats = async () => {
     setIsLoading(true);
@@ -75,7 +84,7 @@ const AcademicAdminDashboard: React.FC = () => {
         toast.error(studentsResult.message);
       }
       
-      setTotalEnrollments(156); // This would come from an enrollment stats API
+      setTotalEnrollments(156);
     } catch (error) {
       console.error('Error fetching stats:', error);
       toast.error('Failed to load dashboard data');
@@ -100,28 +109,49 @@ const AcademicAdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      <AcademicAdminSidebar />
+    <div className="flex h-screen bg-gray-100 overflow-hidden">
+      <AcademicAdminSidebar isOpen={isMobileMenuOpen} onToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)} />
       
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-white shadow-sm px-6 py-4">
+        <header className="bg-white shadow-sm px-4 py-3 md:px-6 md:py-4">
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-semibold text-gray-800">{getPageTitle()}</h1>
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-700">{user?.fullName}</p>
-                <p className="text-xs text-gray-500">Academic Administrator</p>
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              aria-label="Toggle menu"
+            >
+              <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            
+            <h1 className="text-lg md:text-2xl font-semibold text-gray-800 truncate flex-1 md:flex-none ml-2 md:ml-0">
+              {getPageTitle()}
+            </h1>
+            
+            <div className="flex items-center space-x-2 md:space-x-4">
+              <div className="text-right hidden sm:block">
+                <p className="text-xs md:text-sm font-medium text-gray-700 truncate max-w-[120px]">
+                  {user?.fullName}
+                </p>
+                <p className="text-xs text-gray-500 hidden md:block">Academic Administrator</p>
               </div>
-              <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center">
-                <span className="text-white font-semibold">
+              <div className="w-8 h-8 md:w-10 md:h-10 bg-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-semibold text-sm md:text-base">
                   {user?.fullName?.charAt(0) || 'A'}
                 </span>
               </div>
             </div>
           </div>
+          
+          {/* Mobile user info */}
+          <div className="sm:hidden mt-2 text-right">
+            <p className="text-xs font-medium text-gray-700">{user?.fullName}</p>
+            <p className="text-xs text-gray-500">Academic Administrator</p>
+          </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <Routes>
             <Route path="overview" element={
               <AcademicAdminOverview 
