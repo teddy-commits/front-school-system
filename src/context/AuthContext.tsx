@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { authApi } from '../api/modules/authApi';
 import toast from 'react-hot-toast';
 
-// Define types inline to avoid import issues
 interface LoginResponse {
   token: string;
   tokenType: string;
@@ -52,7 +51,6 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-// Define the possible return types from authApi.login
 type LoginSuccessResponse = {
   success: true;
   data: LoginResponse;
@@ -97,8 +95,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true);
     
     const result = await authApi.login(id, password) as LoginResult;
-    
-    // Type narrowing: check if success is true and data exists
     if (result.success && 'data' in result && result.data) {
       setUser(result.data);
       localStorage.setItem('userType', userType);
@@ -114,7 +110,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return true;
     }
     
-    // Type narrowing for error case
     const errorMessage = !result.success && 'message' in result 
       ? result.message 
       : 'Login failed. Please check your credentials.';

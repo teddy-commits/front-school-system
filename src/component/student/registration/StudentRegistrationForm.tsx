@@ -7,7 +7,6 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../../common/Header';
 import { Calendar, Clock, AlertCircle, XCircle, Info, Building2 } from 'lucide-react';
 
-// Define proper types
 interface Department {
   id: number;
   code: string;
@@ -31,7 +30,6 @@ interface NextSessionInfo {
   academicYear: number;
 }
 
-// API Response types
 interface ApiSuccessResponse<T = any> {
   success: true;
   data: T;
@@ -79,7 +77,6 @@ const StudentRegistrationForm = () => {
     emergencyContact: '',
   });
 
-  // Fetch departments on component mount
   useEffect(() => {
     fetchDepartments();
     checkRegistrationStatus();
@@ -119,7 +116,6 @@ const StudentRegistrationForm = () => {
     const { name, value } = e.target;
     
     if (name === 'departmentId') {
-      // Find selected department and auto-fill faculty
       const selectedDept = departments.find(d => d.id.toString() === value);
       if (selectedDept) {
         setFormData(prev => ({ 
@@ -137,8 +133,6 @@ const StudentRegistrationForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Double check if registration is still open before submitting
     const statusCheck = await registrationSessionApi.checkRegistrationStatus() as ApiResponse<RegistrationStatusResponse>;
     if (!statusCheck.success || !('data' in statusCheck) || !statusCheck.data.isOpen) {
       toast.error('Registration has been closed. Please contact the administration.');
@@ -147,8 +141,6 @@ const StudentRegistrationForm = () => {
     }
     
     setIsLoading(true);
-    
-    // Prepare data with departmentId
     const submitData = {
       ...formData,
       departmentId: parseInt(formData.departmentId),

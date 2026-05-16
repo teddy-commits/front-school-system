@@ -79,11 +79,10 @@ const CreateFeeStructureModal: React.FC<CreateFeeStructureModalProps> = ({ onClo
     
     setIsLoading(true);
     
-    // ✅ UPDATE THIS PART - Change null/undefined to empty string
     const submitData = {
       ...formData,
       amount: Number(formData.amount),
-      dueDate: formData.dueDate ? `${formData.dueDate}T00:00:00` : ''  // Use empty string instead of null
+      dueDate: formData.dueDate ? `${formData.dueDate}T00:00:00` : '' 
     };
     
     const result = await financeApi.createFeeStructure(submitData) as ApiResponse;

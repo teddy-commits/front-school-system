@@ -1,7 +1,6 @@
 import apiClient, { handleApiError } from '../client';
 
 export const registrationSessionApi = {
-  // Check if registration is open (Public)
   checkRegistrationStatus: async () => {
     try {
       const response = await apiClient.get('/registration/sessions/status');
@@ -11,7 +10,6 @@ export const registrationSessionApi = {
     }
   },
 
-  // Get current open session (Public)
   getCurrentSession: async () => {
     try {
       const response = await apiClient.get('/registration/sessions/current');
@@ -20,8 +18,6 @@ export const registrationSessionApi = {
       return handleApiError(error);
     }
   },
-
-  // Get upcoming sessions (Public)
   getUpcomingSessions: async () => {
     try {
       const response = await apiClient.get('/registration/sessions/upcoming');
@@ -31,7 +27,6 @@ export const registrationSessionApi = {
     }
   },
 
-  // Admin: Create session
   createSession: async (data: any) => {
     try {
       const response = await apiClient.post('/registration/sessions', data);
@@ -41,7 +36,6 @@ export const registrationSessionApi = {
     }
   },
 
-  // Admin: Update session
   updateSession: async (id: number, data: any) => {
     try {
       const response = await apiClient.put(`/registration/sessions/${id}`, data);
@@ -51,7 +45,6 @@ export const registrationSessionApi = {
     }
   },
 
-  // Admin: Get all sessions
   getAllSessions: async () => {
     try {
       const response = await apiClient.get('/registration/sessions');
@@ -61,7 +54,6 @@ export const registrationSessionApi = {
     }
   },
 
-  // Admin: Close session
   closeSession: async (id: number) => {
     try {
       const response = await apiClient.patch(`/registration/sessions/${id}/close`);
@@ -71,7 +63,6 @@ export const registrationSessionApi = {
     }
   },
 
-  // Admin: Activate session
   activateSession: async (id: number) => {
     try {
       const response = await apiClient.patch(`/registration/sessions/${id}/activate`);
@@ -81,7 +72,6 @@ export const registrationSessionApi = {
     }
   },
 
-  // Admin: Delete session
   deleteSession: async (id: number) => {
     try {
       const response = await apiClient.delete(`/registration/sessions/${id}`);

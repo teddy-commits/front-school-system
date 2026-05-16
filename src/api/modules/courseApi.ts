@@ -23,7 +23,6 @@ interface UpdateCourseData {
 }
 
 export const courseApi = {
-  // Create a new course
   createCourse: async (courseData: CourseData) => {
     try {
       const response = await apiClient.post('/grading/courses', courseData);
@@ -33,7 +32,6 @@ export const courseApi = {
     }
   },
 
-  // Get all courses
   getAllCourses: async () => {
     try {
       const response = await apiClient.get('/grading/courses');
@@ -42,8 +40,6 @@ export const courseApi = {
       return handleApiError(error);
     }
   },
-
-  // Get course by ID
   getCourseById: async (id: number) => {
     try {
       const response = await apiClient.get(`/grading/courses/${id}`);
@@ -53,7 +49,6 @@ export const courseApi = {
     }
   },
 
-  // Get course by code
   getCourseByCode: async (code: string) => {
     try {
       const response = await apiClient.get(`/grading/courses/code/${code}`);
@@ -63,7 +58,6 @@ export const courseApi = {
     }
   },
 
-  // Update course
   updateCourse: async (id: number, courseData: UpdateCourseData) => {
     try {
       const response = await apiClient.put(`/grading/courses/${id}`, courseData);
@@ -72,8 +66,6 @@ export const courseApi = {
       return handleApiError(error);
     }
   },
-
-  // Delete course
   deleteCourse: async (id: number) => {
     try {
       const response = await apiClient.delete(`/grading/courses/${id}`);
@@ -83,7 +75,6 @@ export const courseApi = {
     }
   },
 
-  // Search courses
   searchCourses: async (keyword: string) => {
     try {
       const response = await apiClient.get(`/grading/courses/search?keyword=${keyword}`);
@@ -93,7 +84,6 @@ export const courseApi = {
     }
   },
 
-  // Get courses by department
   getCoursesByDepartment: async (department: string) => {
     try {
       const response = await apiClient.get(`/grading/courses/department/${department}`);
@@ -103,7 +93,6 @@ export const courseApi = {
     }
   },
 
-  // Get courses by faculty
   getCoursesByFaculty: async (faculty: string) => {
     try {
       const response = await apiClient.get(`/grading/courses/faculty/${faculty}`);
@@ -113,7 +102,6 @@ export const courseApi = {
     }
   },
 
-  // Get courses by semester
   getCoursesBySemester: async (semester: string, academicYear: number) => {
     try {
       const response = await apiClient.get(`/grading/courses/semester?semester=${semester}&academicYear=${academicYear}`);
@@ -123,7 +111,6 @@ export const courseApi = {
     }
   },
 
-  // Get courses by instructor (by email)
   getCoursesByInstructor: async (instructorEmail: string) => {
     try {
       const response = await apiClient.get(`/grading/courses/instructor/${instructorEmail}`);
@@ -133,7 +120,6 @@ export const courseApi = {
     }
   },
 
-  // Get courses for the logged-in instructor (based on their department)
   getMyCourses: async (semester: string, academicYear: number) => {
     try {
       const response = await apiClient.get('/grading/sections/instructor/my-courses', {
@@ -148,7 +134,6 @@ export const courseApi = {
     }
   },
 
-  // Get available courses for the logged-in instructor (based on their department)
   getAvailableCoursesForInstructor: async () => {
     try {
       const response = await apiClient.get('/grading/courses/instructor/available');
@@ -158,7 +143,6 @@ export const courseApi = {
     }
   },
 
-  // Update course status
   updateCourseStatus: async (id: number, status: string) => {
     try {
       const response = await apiClient.patch(`/grading/courses/${id}/status?status=${status}`);

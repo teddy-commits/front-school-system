@@ -22,7 +22,7 @@ interface FeePaymentModalProps {
 }
 
 interface PaymentData {
-  studentId: number;  // Change to number (not optional)
+  studentId: number;
   feeId: number;
   amount: number;
   paymentMethod: string;
@@ -32,7 +32,6 @@ interface PaymentData {
   remarks: string;
 }
 
-// API Response types
 interface ApiSuccessResponse<T = any> {
   success: true;
   data: T;
@@ -62,13 +61,11 @@ const FeePaymentModal: React.FC<FeePaymentModalProps> = ({ fee, onClose, onSucce
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate userId exists
     if (!userId) {
       toast.error('User not authenticated');
       return;
     }
     
-    // Validate amount
     if (formData.amount <= 0) {
       toast.error('Please enter a valid amount');
       return;
@@ -81,7 +78,7 @@ const FeePaymentModal: React.FC<FeePaymentModalProps> = ({ fee, onClose, onSucce
     setIsLoading(true);
 
     const paymentData: PaymentData = {
-      studentId: userId, // userId is guaranteed to be a number here due to the check above
+      studentId: userId, 
       feeId: fee.id,
       amount: formData.amount,
       paymentMethod: paymentMethod,
@@ -104,7 +101,6 @@ const FeePaymentModal: React.FC<FeePaymentModalProps> = ({ fee, onClose, onSucce
     setIsLoading(false);
   };
 
-  // Format as Ethiopian Birr (ETB)
   const formatCurrency = (amount: number) => {
     return `ETB ${(amount || 0).toLocaleString('en-US', { 
       minimumFractionDigits: 2, 

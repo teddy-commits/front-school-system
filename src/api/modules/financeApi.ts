@@ -34,7 +34,6 @@ interface PartialPaymentData {
 }
 
 export const financeApi = {
-  // ========== Fee Structure Management ==========
   
   createFeeStructure: async (data: FeeStructureData) => {
     try {
@@ -71,8 +70,6 @@ export const financeApi = {
       return handleApiError(error);
     }
   },
-
-  // ========== Student Fees ==========
 
   getStudentFees: async (studentId: number) => {
     try {
@@ -128,8 +125,6 @@ export const financeApi = {
     }
   },
 
-  // ========== Payment Management ==========
-
   processPayment: async (data: PaymentData) => {
     try {
       const response = await apiClient.post('/finance/payments', data);
@@ -175,8 +170,6 @@ export const financeApi = {
     }
   },
 
-  // ========== Invoice Management ==========
-
   generateInvoice: async (studentId: number, semester: string, academicYear: number) => {
     try {
       const response = await apiClient.post(`/finance/students/${studentId}/invoices?semester=${semester}&academicYear=${academicYear}`);
@@ -213,8 +206,6 @@ export const financeApi = {
     }
   },
 
-  // ========== Receipt/Invoice Download ==========
-
   downloadReceipt: async (paymentId: number) => {
     try {
       const response = await apiClient.get(`/finance/payments/${paymentId}/receipt`, {
@@ -236,8 +227,6 @@ export const financeApi = {
       return handleApiError(error);
     }
   },
-
-  // ========== Reports ==========
 
   getDailyReport: async (date: string) => {
     try {

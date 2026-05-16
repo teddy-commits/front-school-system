@@ -53,7 +53,6 @@ interface UpdateUserData {
 }
 
 export const registrationApi = {
-  // Register a new student (Public endpoint - no auth required)
   registerStudent: async (studentData: StudentRegistrationData) => {
     try {
       const response = await apiClient.post('/registration/students/register', studentData);
@@ -72,7 +71,6 @@ export const registrationApi = {
     }
   },
 
-  // Get student by ID
   getStudentById: async (id: number) => {
     try {
       const response = await apiClient.get(`/registration/students/${id}`);
@@ -82,7 +80,6 @@ export const registrationApi = {
     }
   },
 
-  // Get student by Student ID
   getStudentByStudentId: async (studentId: string) => {
     try {
       const response = await apiClient.get(`/registration/students/student-id/${studentId}`);
@@ -92,7 +89,6 @@ export const registrationApi = {
     }
   },
 
-  // Update student
   updateStudent: async (id: number, studentData: UpdateStudentData) => {
     try {
       const response = await apiClient.put(`/registration/students/${id}`, studentData);
@@ -102,7 +98,6 @@ export const registrationApi = {
     }
   },
 
-  // Deactivate student
   deactivateStudent: async (id: number) => {
     try {
       const response = await apiClient.patch(`/registration/students/${id}/deactivate`);
@@ -112,7 +107,6 @@ export const registrationApi = {
     }
   },
 
-  // Activate student
   activateStudent: async (id: number) => {
     try {
       const response = await apiClient.patch(`/registration/students/${id}/activate`);
@@ -122,7 +116,6 @@ export const registrationApi = {
     }
   },
 
-  // Search students
   searchStudents: async (keyword: string) => {
     try {
       const response = await apiClient.get(`/registration/students/search?keyword=${keyword}`);
@@ -132,7 +125,6 @@ export const registrationApi = {
     }
   },
 
-  // Get students by department
   getStudentsByDepartment: async (department: string) => {
     try {
       const response = await apiClient.get(`/registration/students/department/${department}`);
@@ -142,7 +134,6 @@ export const registrationApi = {
     }
   },
 
-  // Get students by faculty
   getStudentsByFaculty: async (faculty: string) => {
     try {
       const response = await apiClient.get(`/registration/students/faculty/${faculty}`);
@@ -152,7 +143,6 @@ export const registrationApi = {
     }
   },
 
-  // Get student count
   getStudentCount: async () => {
     try {
       const response = await apiClient.get('/registration/students/count');
@@ -162,9 +152,6 @@ export const registrationApi = {
     }
   },
 
-  // ========== Admin User Management ==========
-  
-  // Get all instructors
   getAllInstructors: async () => {
     try {
       const response = await apiClient.get('/admin/users/instructors');
@@ -174,7 +161,6 @@ export const registrationApi = {
     }
   },
 
-  // Create instructor
   createInstructor: async (data: UserData) => {
     try {
       const response = await apiClient.post('/admin/users/instructors', data);
@@ -193,7 +179,6 @@ export const registrationApi = {
     }
   },
 
-  // Create management staff
   createManagementStaff: async (data: UserData) => {
     try {
       const response = await apiClient.post('/admin/users/management', data);
@@ -203,7 +188,6 @@ export const registrationApi = {
     }
   },
 
-  // Get user statistics
   getUserStatistics: async () => {
     try {
       const response = await apiClient.get('/admin/users/statistics');
@@ -213,7 +197,6 @@ export const registrationApi = {
     }
   },
 
-  // Get user by ID
   getUserById: async (id: number) => {
     try {
       const response = await apiClient.get(`/admin/users/${id}`);
@@ -222,8 +205,6 @@ export const registrationApi = {
       return handleApiError(error);
     }
   },
-
-  // Update user
   updateUser: async (id: number, data: UpdateUserData) => {
     try {
       const response = await apiClient.put(`/admin/users/${id}`, data);
@@ -233,7 +214,6 @@ export const registrationApi = {
     }
   },
 
-  // Get academic administrators
   getAcademicAdministrators: async () => {
     try {
       const response = await apiClient.get('/admin/users/academic-administrators');
@@ -243,7 +223,6 @@ export const registrationApi = {
     }
   },
 
-  // Get management staff
   getManagementStaff: async () => {
     try {
       const response = await apiClient.get('/admin/users/management');
@@ -253,7 +232,6 @@ export const registrationApi = {
     }
   },
 
-  // Get ALL users (all roles)
   getAllUsers: async () => {
     try {
       const response = await apiClient.get('/admin/users');
@@ -263,7 +241,6 @@ export const registrationApi = {
     }
   },
 
-  // Deactivate user
   deactivateUser: async (id: number) => {
     try {
       const response = await apiClient.patch(`/admin/users/${id}/deactivate`);
@@ -273,7 +250,6 @@ export const registrationApi = {
     }
   },
 
-  // Activate user
   activateUser: async (id: number) => {
     try {
       const response = await apiClient.patch(`/admin/users/${id}/activate`);
@@ -283,7 +259,6 @@ export const registrationApi = {
     }
   },
 
-  // Search users
   searchUsers: async (keyword: string, role?: string) => {
     try {
       const url = role 

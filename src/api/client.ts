@@ -20,12 +20,9 @@ export const authClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true, // Important for CORS
+  withCredentials: true,
 });
 
-// Rest of your client.ts code remains the same...
-
-// Request interceptor - Add Auth Token
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken');
@@ -39,13 +36,11 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor - Handle Errors
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
     
-    // Handle 401 Unauthorized - Token expired
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       
@@ -83,8 +78,6 @@ apiClient.interceptors.response.use(
   }
 );
 
-// Helper function to handle API errors
-// Replace your existing handleApiError function with this:
 export const handleApiError = (error: unknown) => {
   if (axios.isAxiosError(error)) {
     if (error.response) {
@@ -111,8 +104,6 @@ export const handleApiError = (error: unknown) => {
   };
 };
 
-
-// Export types
 export type ApiResult<T> = {
   success: true;
   data: T;

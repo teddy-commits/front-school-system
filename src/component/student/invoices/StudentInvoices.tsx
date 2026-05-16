@@ -17,7 +17,6 @@ interface Invoice {
   status: string;
 }
 
-// API Response types
 interface ApiSuccessResponse<T = any> {
   success: true;
   data: T;
@@ -62,7 +61,6 @@ const StudentInvoices: React.FC = () => {
     }
   };
 
-  // ✅ UPDATED: Format as Ethiopian Birr (ETB)
   const formatCurrency = (amount: number) => {
     return `ETB ${(amount || 0).toLocaleString('en-US', { 
       minimumFractionDigits: 2, 
@@ -109,13 +107,11 @@ const StudentInvoices: React.FC = () => {
   };
 
   const handleViewInvoice = (invoice: Invoice) => {
-    // Open invoice details or navigate to invoice page
     console.log('Viewing invoice:', invoice.invoiceNumber);
     toast.success(`Viewing invoice ${invoice.invoiceNumber}`);
   };
 
   const handleDownloadPDF = (invoice: Invoice) => {
-    // Download invoice as PDF
     console.log('Downloading invoice:', invoice.invoiceNumber);
     toast.success(`Downloading invoice ${invoice.invoiceNumber}`);
   };

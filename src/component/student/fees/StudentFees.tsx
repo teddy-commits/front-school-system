@@ -22,7 +22,6 @@ interface FeeSummary {
   totalOutstanding: number;
 }
 
-// API Response types
 interface ApiSuccessResponse<T = any> {
   success: true;
   data: T;
@@ -82,7 +81,6 @@ const StudentFees: React.FC = () => {
     }
   };
 
-  // ✅ UPDATED: Format as Ethiopian Birr (ETB)
   const formatCurrency = (amount: number) => {
     return `ETB ${(amount || 0).toLocaleString('en-US', { 
       minimumFractionDigits: 2, 

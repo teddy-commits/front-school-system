@@ -44,7 +44,6 @@ interface EnrolledStudent {
   status: string;
 }
 
-// API Response types
 interface ApiSuccessResponse<T = any> {
   success: true;
   data: T;
@@ -171,7 +170,6 @@ const EnrollmentManagement: React.FC = () => {
   setIsLoading(true);
   
   try {
-    // Fix: Pass an object instead of 4 separate arguments
     const result = await enrollmentApi.enrollInSection({
       studentId: studentId,
       sectionId: selectedSection.id,
@@ -243,12 +241,10 @@ const EnrollmentManagement: React.FC = () => {
     return styles[yearLevel] || 'bg-gray-100 text-gray-800';
   };
 
-  // Filter sections by course if needed
   const filteredSections = selectedCourseFilter === 'ALL' 
     ? sections 
     : sections.filter(s => s.courseId.toString() === selectedCourseFilter);
 
-  // Get unique courses for filter dropdown
   const uniqueCourses = [...new Map(sections.map(s => [s.courseId, { id: s.courseId, code: s.courseCode, name: s.courseName }])).values()];
 
   return (

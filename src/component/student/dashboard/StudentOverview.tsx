@@ -5,7 +5,6 @@ import { gradeApi } from '../../../api/modules/gradeApi';
 import { financeApi } from '../../../api/modules/financeApi';
 import { useAuth } from '../../../context/AuthContext';
 
-// Define proper types
 interface Grade {
   id: number;
   courseCode: string;
@@ -36,7 +35,6 @@ interface StudentOverviewProps {
   enrolledCourses: number;
 }
 
-// API Response types
 interface ApiSuccessResponse<T = any> {
   success: true;
   data: T;

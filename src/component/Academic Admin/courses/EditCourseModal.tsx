@@ -17,7 +17,7 @@ interface Course {
   instructorEmail: string;
   maxStudents: number;
   prerequisites: string;
-  syllabus?: string;  // Made optional
+  syllabus?: string;
   room: string;
   schedule: string;
 }

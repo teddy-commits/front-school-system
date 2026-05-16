@@ -1,7 +1,6 @@
 import apiClient, { handleApiError } from '../client';
 
 export const departmentApi = {
-  // Create department
   createDepartment: async (data: any) => {
     try {
       const response = await apiClient.post('/departments', data);
@@ -11,7 +10,6 @@ export const departmentApi = {
     }
   },
 
-  // Update department
   updateDepartment: async (id: number, data: any) => {
     try {
       const response = await apiClient.put(`/departments/${id}`, data);
@@ -21,7 +19,6 @@ export const departmentApi = {
     }
   },
 
-  // Get all departments
   getAllDepartments: async () => {
     try {
       const response = await apiClient.get('/departments');
@@ -31,7 +28,6 @@ export const departmentApi = {
     }
   },
 
-  // Get active departments
   getActiveDepartments: async () => {
     try {
       const response = await apiClient.get('/departments/active');
@@ -41,7 +37,6 @@ export const departmentApi = {
     }
   },
 
-  // Get department by ID
   getDepartmentById: async (id: number) => {
     try {
       const response = await apiClient.get(`/departments/${id}`);
@@ -51,7 +46,6 @@ export const departmentApi = {
     }
   },
 
-  // Get department by code
   getDepartmentByCode: async (code: string) => {
     try {
       const response = await apiClient.get(`/departments/code/${code}`);
@@ -61,7 +55,6 @@ export const departmentApi = {
     }
   },
 
-  // Get departments by faculty
   getDepartmentsByFaculty: async (faculty: string) => {
     try {
       const response = await apiClient.get(`/departments/faculty/${faculty}`);
@@ -71,7 +64,6 @@ export const departmentApi = {
     }
   },
 
-  // Search departments
   searchDepartments: async (keyword: string) => {
     try {
       const response = await apiClient.get(`/departments/search?keyword=${keyword}`);
@@ -81,7 +73,6 @@ export const departmentApi = {
     }
   },
 
-  // Delete department
   deleteDepartment: async (id: number) => {
     try {
       const response = await apiClient.delete(`/departments/${id}`);
@@ -91,7 +82,6 @@ export const departmentApi = {
     }
   },
 
-  // Activate department
   activateDepartment: async (id: number) => {
     try {
       const response = await apiClient.patch(`/departments/${id}/activate`);
@@ -101,7 +91,6 @@ export const departmentApi = {
     }
   },
 
-  // Deactivate department
   deactivateDepartment: async (id: number) => {
     try {
       const response = await apiClient.patch(`/departments/${id}/deactivate`);

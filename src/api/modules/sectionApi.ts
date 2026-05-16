@@ -1,7 +1,6 @@
 import apiClient, { handleApiError } from '../client';
 
 export const sectionApi = {
-  // Get all sections (Admin/Academic Admin only)
   getAllSections: async () => {
     try {
       const response = await apiClient.get('/grading/sections');
@@ -11,7 +10,6 @@ export const sectionApi = {
     }
   },
 
-  // Create a section (Admin/Academic Admin only)
   createSection: async (data: any) => {
     try {
       const response = await apiClient.post('/grading/sections', data);
@@ -20,8 +18,6 @@ export const sectionApi = {
       return handleApiError(error);
     }
   },
-
-  // Update a section
   updateSection: async (id: number, data: any) => {
     try {
       const response = await apiClient.put(`/grading/sections/${id}`, data);
@@ -31,7 +27,6 @@ export const sectionApi = {
     }
   },
 
-  // Get all sections for a course
   getSectionsByCourse: async (courseId: number) => {
     try {
       const response = await apiClient.get(`/grading/sections/course/${courseId}`);
@@ -41,7 +36,6 @@ export const sectionApi = {
     }
   },
 
-  // Get instructor's sections (for instructor dashboard)
   getMySections: async (semester: string, academicYear: number) => {
     try {
       const response = await apiClient.get(`/grading/sections/instructor/current?semester=${semester}&academicYear=${academicYear}`);
@@ -51,7 +45,6 @@ export const sectionApi = {
     }
   },
 
-  // Get open sections for student registration
   getOpenSections: async (semester: string, academicYear: number) => {
     try {
       const response = await apiClient.get(`/grading/sections/open?semester=${semester}&academicYear=${academicYear}`);
@@ -61,7 +54,6 @@ export const sectionApi = {
     }
   },
 
-  // Get section by ID
   getSectionById: async (id: number) => {
     try {
       const response = await apiClient.get(`/grading/sections/${id}`);
@@ -71,7 +63,6 @@ export const sectionApi = {
     }
   },
 
-  // Delete a section
   deleteSection: async (id: number) => {
     try {
       const response = await apiClient.delete(`/grading/sections/${id}`);
@@ -81,7 +72,6 @@ export const sectionApi = {
     }
   },
 
-  // Update section status
   updateSectionStatus: async (id: number, status: string) => {
     try {
       const response = await apiClient.patch(`/grading/sections/${id}/status?status=${status}`);
@@ -91,7 +81,6 @@ export const sectionApi = {
     }
   },
 
-  // Get sections by semester
   getSectionsBySemester: async (semester: string, academicYear: number) => {
     try {
       const response = await apiClient.get(`/grading/sections/semester?semester=${semester}&academicYear=${academicYear}`);
@@ -101,9 +90,6 @@ export const sectionApi = {
     }
   },
 
-  // ========== Section Instructor Management ==========
-  
-  // Get section instructors
   getSectionInstructors: async (sectionId: number) => {
     try {
       const response = await apiClient.get(`/grading/sections/${sectionId}/instructors`);
@@ -113,7 +99,6 @@ export const sectionApi = {
     }
   },
 
-  // Add instructor to section
   addInstructorToSection: async (data: { sectionId: number; instructorId: number; courseId?: number }) => {
     try {
       const response = await apiClient.post(`/grading/sections/${data.sectionId}/instructors`, {
@@ -126,7 +111,6 @@ export const sectionApi = {
     }
   },
 
-  // Remove instructor from section
   removeInstructorFromSection: async (sectionInstructorId: number) => {
     try {
       const response = await apiClient.delete(`/grading/sections/instructors/${sectionInstructorId}`);
@@ -136,9 +120,7 @@ export const sectionApi = {
     }
   },
 
-  // ========== Section Course Management ==========
-  
-  // Get section courses
+
   getSectionCourses: async (sectionId: number) => {
     try {
       const response = await apiClient.get(`/grading/sections/${sectionId}/courses`);
@@ -148,7 +130,6 @@ export const sectionApi = {
     }
   },
 
-  // Add course to section
   addCourseToSection: async (data: { sectionId: number; courseId: number; schedule?: string; room?: string }) => {
     try {
       const response = await apiClient.post(`/grading/sections/${data.sectionId}/courses`, {
@@ -162,7 +143,6 @@ export const sectionApi = {
     }
   },
 
-  // Remove course from section
   removeCourseFromSection: async (sectionCourseId: number) => {
     try {
       const response = await apiClient.delete(`/grading/sections/courses/${sectionCourseId}`);

@@ -1,4 +1,3 @@
-// src/types/auth.types.d.ts
 export interface LoginRequest {
   id: string;
   password: string;

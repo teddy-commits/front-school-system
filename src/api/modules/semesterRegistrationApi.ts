@@ -62,7 +62,6 @@ export const semesterRegistrationApi = {
     }
   },
 
-  // Get current semester registration
   getCurrentRegistration: async (studentId: number) => {
     try {
       const response = await apiClient.get(`/semester-registration/students/${studentId}/current`);

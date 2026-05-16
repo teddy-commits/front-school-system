@@ -53,7 +53,7 @@ interface ApiErrorResponse {
 type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
 
 const InstructorCourses: React.FC = () => {
-  const { user } = useAuth(); // Changed from userEmail to user
+  const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);

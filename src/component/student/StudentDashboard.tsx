@@ -62,23 +62,14 @@ const StudentDashboard: React.FC = () => {
     if (!userId) return;
 
     try {
-      // Fetch CGPA with type safety
       const cgpaResult = await gradeApi.getStudentCGPA(userId) as CGPAResponse;
       if (cgpaResult.success && cgpaResult.data !== undefined) {
         setCgpa(cgpaResult.data);
       }
-
-      // Fetch fee summary with type safety
       const feeResult = await financeApi.getStudentFeeSummary(userId) as FeeSummaryResponse;
       if (feeResult.success && feeResult.data) {
         setTotalOutstanding(feeResult.data.totalOutstanding || 0);
       }
-
-      // You can also fetch enrolled courses count if needed
-      // const coursesResult = await enrollmentApi.getStudentEnrollments(userId);
-      // if (coursesResult.success && coursesResult.data) {
-      //   setEnrolledCourses(coursesResult.data.length);
-      // }
     } catch (error) {
       console.error('Error fetching student data:', error);
     }

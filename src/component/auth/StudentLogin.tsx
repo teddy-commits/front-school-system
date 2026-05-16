@@ -16,7 +16,6 @@ const StudentLogin: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Students login with Student ID
     const success = await login(studentId, password, 'student');
     
     if (success) {
@@ -26,10 +25,9 @@ const StudentLogin: React.FC = () => {
     setIsLoading(false);
   };
 
-  // Helper to format student ID input
+ 
   const handleStudentIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.toUpperCase();
-    // Auto-format: STU20240001
     if (value.length > 3 && !value.startsWith('STU')) {
       value = 'STU' + value;
     }

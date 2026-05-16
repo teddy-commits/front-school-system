@@ -19,9 +19,7 @@ interface UpdateGradeData {
 }
 
 export const gradeApi = {
-  // ========== Grade Management ==========
-  
-  // Submit grade for a student
+
   submitGrade: async (data: GradeData) => {
     try {
       const response = await apiClient.post('/grading/grades/submit', data);
@@ -31,7 +29,6 @@ export const gradeApi = {
     }
   },
 
-  // Get all grades for a student
   getStudentGrades: async (studentId: number) => {
     try {
       const response = await apiClient.get(`/grading/students/${studentId}/grades`);
@@ -41,7 +38,6 @@ export const gradeApi = {
     }
   },
 
-  // Get all grades for a course
   getCourseGrades: async (courseCode: string) => {
     try {
       const response = await apiClient.get(`/grading/courses/${courseCode}/grades`);
@@ -51,7 +47,6 @@ export const gradeApi = {
     }
   },
 
-  // Update grade
   updateGrade: async (gradeId: number, data: UpdateGradeData) => {
     try {
       const response = await apiClient.put(`/grading/grades/${gradeId}`, data);
@@ -60,8 +55,6 @@ export const gradeApi = {
       return handleApiError(error);
     }
   },
-
-  // Get student transcript
   getStudentTranscript: async (studentId: number) => {
     try {
       const response = await apiClient.get(`/grading/students/${studentId}/transcript`);
@@ -71,7 +64,6 @@ export const gradeApi = {
     }
   },
 
-  // Get student CGPA
   getStudentCGPA: async (studentId: number) => {
     try {
       const response = await apiClient.get(`/grading/students/${studentId}/cgpa`);
@@ -81,7 +73,6 @@ export const gradeApi = {
     }
   },
 
-  // Publish grades for a course
   publishGrades: async (courseCode: string) => {
     try {
       const response = await apiClient.post(`/grading/courses/${courseCode}/publish`);
@@ -91,7 +82,6 @@ export const gradeApi = {
     }
   },
 
-  // Get grade statistics for a course
   getCourseGradeStats: async (courseCode: string) => {
     try {
       const response = await apiClient.get(`/grading/courses/${courseCode}/grades/stats`);

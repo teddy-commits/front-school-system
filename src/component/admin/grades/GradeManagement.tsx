@@ -456,7 +456,6 @@ const GradeManagement: React.FC = () => {
   );
 };
 
-// Submit Grade Modal Component
 const SubmitGradeModal: React.FC<{
   courses: Course[];
   students: Student[];
