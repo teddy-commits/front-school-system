@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { X } from 'lucide-react';
+// src/component/admin/courses/CreateCourseModal.tsx
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, Loader } from 'lucide-react';
 import { courseApi } from '../../../api/modules/courseApi';
+import { departmentApi } from '../../../api/modules/departmentApi';
 import toast from 'react-hot-toast';
 
 interface Instructor {
@@ -8,6 +10,19 @@ interface Instructor {
   fullName: string;
   email: string;
   department?: string;
+}
+
+interface Department {
+  id: number;
+  name: string;
+  code: string;
+  description?: string;
+  faculty: string; // Faculty is a string field in Department
+  headOfDepartment?: string;
+  headEmail?: string;
+  contactPhone?: string;
+  officeLocation?: string;
+  isActive?: boolean;
 }
 
 interface CreateCourseModalProps {
@@ -51,6 +66,10 @@ type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
 
 const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ onClose, onSuccess, instructors }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [selectedFaculty, setSelectedFaculty] = useState<string>('');
+  
   const [formData, setFormData] = useState<FormData>({
     courseCode: '',
     courseName: '',
@@ -69,30 +88,70 @@ const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ onClose, onSucces
     schedule: ''
   });
 
-  const departments = [
-    'Computer Science', 'Software Engineering', 'Information Technology',
-    'Electrical Engineering', 'Mechanical Engineering', 'Civil Engineering',
-    'Business Administration', 'Economics', 'Mathematics', 'Physics', 'Chemistry'
-  ];
-
-  const faculties = [
-    'Faculty of Computing and Informatics',
-    'Faculty of Engineering',
-    'Faculty of Business and Economics',
-    'Faculty of Science',
-    'Faculty of Arts and Humanities'
-  ];
-
   const semesters = ['FALL', 'SPRING', 'SUMMER'];
+
+  // Extract unique faculties from departments (no need for separate API!)
+  const uniqueFaculties = useMemo(() => {
+    const faculties = new Set<string>();
+    departments.forEach(dept => {
+      if (dept.faculty && dept.faculty.trim()) {
+        faculties.add(dept.faculty);
+      }
+    });
+    return Array.from(faculties).sort();
+  }, [departments]);
+
+  // Filter departments based on selected faculty
+  const filteredDepartments = useMemo(() => {
+    if (!selectedFaculty) return [];
+    return departments.filter(dept => dept.faculty === selectedFaculty);
+  }, [departments, selectedFaculty]);
+
+  useEffect(() => {
+    fetchDepartments();
+  }, []);
+
+  const fetchDepartments = async () => {
+    setIsLoadingData(true);
+    try {
+      const result = await departmentApi.getAllDepartments() as ApiResponse<Department[]>;
+      if (result.success && 'data' in result) {
+        setDepartments(result.data);
+      } else {
+        toast.error('Failed to load departments');
+      }
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+      toast.error('Failed to load departments');
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
+  const handleFacultyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const faculty = e.target.value;
+    setSelectedFaculty(faculty);
+    setFormData({ 
+      ...formData, 
+      faculty: faculty,
+      department: '' // Reset department when faculty changes
+    });
+  };
+
+  const handleDepartmentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const departmentName = e.target.value;
+    setFormData({ ...formData, department: departmentName });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validation
     if (!formData.courseCode.trim()) {
       toast.error('Please enter a course code');
       return;
@@ -107,10 +166,39 @@ const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ onClose, onSucces
       toast.error('Please enter a valid number of credits');
       return;
     }
+
+    if (!formData.faculty) {
+      toast.error('Please select a faculty');
+      return;
+    }
+
+    if (!formData.department) {
+      toast.error('Please select a department');
+      return;
+    }
     
     setIsLoading(true);
 
-    const result = await courseApi.createCourse(formData) as ApiResponse;
+    // Prepare data for API - matching backend CourseRequestDTO
+    const submitData = {
+      courseCode: formData.courseCode,
+      courseName: formData.courseName,
+      description: formData.description || undefined,
+      credits: Number(formData.credits),
+      department: formData.department,
+      faculty: formData.faculty,
+      semester: formData.semester,
+      academicYear: Number(formData.academicYear),
+      status: formData.status,
+      instructorEmail: formData.instructorEmail || undefined,
+      maxStudents: Number(formData.maxStudents),
+      prerequisites: formData.prerequisites || undefined,
+      syllabus: formData.syllabus || undefined,
+      room: formData.room || undefined,
+      schedule: formData.schedule || undefined
+    };
+
+    const result = await courseApi.createCourse(submitData) as ApiResponse;
 
     if (result.success) {
       toast.success(`Course ${formData.courseCode} created successfully!`);
@@ -124,6 +212,19 @@ const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ onClose, onSucces
 
     setIsLoading(false);
   };
+
+  if (isLoadingData) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-8">
+          <div className="flex items-center space-x-3">
+            <Loader className="w-6 h-6 animate-spin text-blue-600" />
+            <span className="text-gray-600">Loading departments...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -216,29 +317,47 @@ const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ onClose, onSucces
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Department *</label>
-              <select
-                name="department"
-                required
-                value={formData.department}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select Department</option>
-                {departments.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-            </div>
-            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Faculty *</label>
               <select
                 name="faculty"
                 required
                 value={formData.faculty}
-                onChange={handleChange}
+                onChange={handleFacultyChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Select Faculty</option>
-                {faculties.map(f => <option key={f} value={f}>{f}</option>)}
+                {uniqueFaculties.map(faculty => (
+                  <option key={faculty} value={faculty}>
+                    {faculty}
+                  </option>
+                ))}
+              </select>
+              {uniqueFaculties.length === 0 && (
+                <p className="text-xs text-amber-600 mt-1">
+                  No faculties found. Please add faculty information to departments first.
+                </p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Department *</label>
+              <select
+                name="department"
+                required
+                value={formData.department}
+                onChange={handleDepartmentChange}
+                disabled={!formData.faculty || filteredDepartments.length === 0}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              >
+                <option value="">
+                  {!formData.faculty ? 'Select Faculty First' : 
+                   filteredDepartments.length === 0 ? 'No departments available' : 
+                   'Select Department'}
+                </option>
+                {filteredDepartments.map(dept => (
+                  <option key={dept.id} value={dept.name}>
+                    {dept.name} {dept.code && `(${dept.code})`}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -323,7 +442,7 @@ const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ onClose, onSucces
             />
           </div>
 
-          <div className="flex justify-end space-x-3 pt-4">
+          <div className="flex justify-end space-x-3 pt-4 border-t mt-4">
             <button
               type="button"
               onClick={onClose}

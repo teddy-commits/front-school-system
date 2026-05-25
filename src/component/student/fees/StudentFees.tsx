@@ -120,6 +120,11 @@ const StudentFees: React.FC = () => {
     }
   };
 
+  const handlePayNow = (fee: Fee) => {
+    setSelectedFee(fee);
+    setShowPaymentModal(true);
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -219,8 +224,23 @@ const StudentFees: React.FC = () => {
                         </span>
                       </div>
                     </td>
-                    </tr>
-                   
+                    <td className="px-6 py-4 text-center">
+                      {fee.status !== 'PAID' ? (
+                        <button
+                          onClick={() => handlePayNow(fee)}
+                          className="inline-flex items-center px-3 py-1.5 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                        >
+                          <CreditCard className="w-4 h-4 mr-1" />
+                          Pay Now
+                        </button>
+                      ) : (
+                        <span className="inline-flex items-center px-3 py-1.5 bg-green-100 text-green-700 text-sm font-medium rounded-lg">
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                          Paid
+                        </span>
+                      )}
+                    </td>
+                  </tr>
                 ))}
               </tbody>
             </table>
@@ -232,10 +252,15 @@ const StudentFees: React.FC = () => {
       {showPaymentModal && selectedFee && (
         <FeePaymentModal
           fee={selectedFee}
-          onClose={() => setShowPaymentModal(false)}
+          onClose={() => {
+            setShowPaymentModal(false);
+            setSelectedFee(null);
+          }}
           onSuccess={() => {
             fetchFees();
             fetchSummary();
+            setShowPaymentModal(false);
+            setSelectedFee(null);
           }}
         />
       )}
