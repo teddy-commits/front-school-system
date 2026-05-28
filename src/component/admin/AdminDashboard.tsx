@@ -10,6 +10,8 @@ import InvoiceManagement from './finance/InvoiceManagement';
 import ReportsDashboard from './reports/ReportsDashboard';
 import { useAuth } from '../../context/AuthContext';
 import { registrationApi } from '../../api/modules/registrationApi';
+import { courseApi } from '../../api/modules/courseApi';
+import { financeApi } from '../../api/modules/financeApi';
 import RegistrationSessionManagement from '../Academic Admin/sessions/RegistrationSessionManagement';
 import DepartmentManagement from './departments/DepartmentManagement';
 
@@ -18,13 +20,6 @@ interface DashboardStats {
   totalInstructors: number;
   totalCourses: number;
   totalRevenue: number;
-}
-
-interface UserStats {
-  totalStudents: number;
-  totalInstructors: number;
-  totalCourses?: number;
-  totalRevenue?: number;
 }
 
 interface ApiSuccessResponse<T = any> {
@@ -51,6 +46,7 @@ const AdminDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { userFullName } = useAuth();
+  const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
@@ -69,28 +65,39 @@ const AdminDashboard: React.FC = () => {
 
   const fetchStats = async () => {
     try {
-      const statsResult = await registrationApi.getUserStatistics() as ApiResponse<UserStats>;
+      // Fetch user statistics (students and instructors count)
+      const statsResult = await registrationApi.getUserStatistics() as ApiResponse<Record<string, number>>;
+      
+      let totalStudents = 0;
+      let totalInstructors = 0;
       
       if (statsResult.success && 'data' in statsResult && statsResult.data) {
-        setStats({
-          totalStudents: statsResult.data.totalStudents || 0,
-          totalInstructors: statsResult.data.totalInstructors || 0,
-          totalCourses: statsResult.data.totalCourses || 45,
-          totalRevenue: statsResult.data.totalRevenue || 124567
-        });
-      } else {
-        const studentsResult = await registrationApi.getAllStudents() as ApiResponse<any[]>;
-        const instructorsResult = await registrationApi.getAllInstructors() as ApiResponse<any[]>;
-        
-        setStats({
-          totalStudents: (studentsResult.success && 'data' in studentsResult && Array.isArray(studentsResult.data)) ? studentsResult.data.length : 0,
-          totalInstructors: (instructorsResult.success && 'data' in instructorsResult && Array.isArray(instructorsResult.data)) ? instructorsResult.data.length : 0,
-          totalCourses: 45,
-          totalRevenue: 124567
-        });
+        totalStudents = statsResult.data.totalStudents || statsResult.data.STUDENT || 0;
+        totalInstructors = statsResult.data.totalInstructors || statsResult.data.INSTRUCTOR || 0;
       }
+      
+      // Fetch total courses
+      const coursesResult = await courseApi.getAllCourses() as ApiResponse<any[]>;
+      const totalCourses = (coursesResult.success && 'data' in coursesResult && Array.isArray(coursesResult.data)) 
+        ? coursesResult.data.length 
+        : 0;
+      
+      // Fetch total revenue from payments
+      const paymentsResult = await financeApi.getAllPayments() as ApiResponse<any[]>;
+      let totalRevenue = 0;
+      if (paymentsResult.success && 'data' in paymentsResult && Array.isArray(paymentsResult.data)) {
+        totalRevenue = paymentsResult.data.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+      }
+      
+      setStats({
+        totalStudents,
+        totalInstructors,
+        totalCourses,
+        totalRevenue
+      });
     } catch (error) {
       console.error('Error fetching stats:', error);
+      // Set default values if APIs fail
       setStats({
         totalStudents: 0,
         totalInstructors: 0,
@@ -115,6 +122,23 @@ const AdminDashboard: React.FC = () => {
       case 'sessions': return 'Registration Sessions';
       case 'departments': return 'Department Management';
       default: return 'Dashboard';
+    }
+  };
+
+  const handleQuickAction = (action: string) => {
+    switch (action) {
+      case 'student':
+        // Navigate to users page with add modal open
+        navigate('/dashboard/users');
+        break;
+      case 'course':
+        navigate('/dashboard/courses');
+        break;
+      case 'instructor':
+        navigate('/dashboard/users');
+        break;
+      default:
+        break;
     }
   };
 
@@ -181,7 +205,7 @@ const AdminDashboard: React.FC = () => {
                     </div>
                     <div className="ml-3 md:ml-4">
                       <p className="text-xs md:text-sm text-gray-500">Total Students</p>
-                      <p className="text-xl md:text-2xl font-semibold text-gray-700">{stats.totalStudents}</p>
+                      <p className="text-xl md:text-2xl font-semibold text-gray-700">{stats.totalStudents.toLocaleString()}</p>
                     </div>
                   </div>
                 </div>
@@ -224,7 +248,7 @@ const AdminDashboard: React.FC = () => {
                     <div className="ml-3 md:ml-4">
                       <p className="text-xs md:text-sm text-gray-500">Total Revenue</p>
                       <p className="text-base md:text-2xl font-semibold text-gray-700 truncate">
-                        ${stats.totalRevenue.toLocaleString()}
+                        ETB {stats.totalRevenue.toLocaleString()}
                       </p>
                     </div>
                   </div>
@@ -236,13 +260,22 @@ const AdminDashboard: React.FC = () => {
                 <div className="bg-white rounded-lg shadow p-4 md:p-6">
                   <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-3 md:mb-4">Quick Actions</h3>
                   <div className="space-y-2 md:space-y-3">
-                    <button className="w-full text-left px-3 py-2 md:px-4 md:py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition text-sm md:text-base">
+                    <button 
+                      onClick={() => handleQuickAction('student')}
+                      className="w-full text-left px-3 py-2 md:px-4 md:py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition text-sm md:text-base"
+                    >
                       + Add New Student
                     </button>
-                    <button className="w-full text-left px-3 py-2 md:px-4 md:py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition text-sm md:text-base">
+                    <button 
+                      onClick={() => handleQuickAction('course')}
+                      className="w-full text-left px-3 py-2 md:px-4 md:py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition text-sm md:text-base"
+                    >
                       + Create Course
                     </button>
-                    <button className="w-full text-left px-3 py-2 md:px-4 md:py-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition text-sm md:text-base">
+                    <button 
+                      onClick={() => handleQuickAction('instructor')}
+                      className="w-full text-left px-3 py-2 md:px-4 md:py-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition text-sm md:text-base"
+                    >
                       + Add Instructor
                     </button>
                   </div>
@@ -253,7 +286,7 @@ const AdminDashboard: React.FC = () => {
                   <div className="space-y-2 md:space-y-3">
                     <div className="text-xs md:text-sm text-gray-600">• New student registered</div>
                     <div className="text-xs md:text-sm text-gray-600">• Course CS101 created</div>
-                    <div className="text-xs md:text-sm text-gray-600">• Payment received from John Doe</div>
+                    <div className="text-xs md:text-sm text-gray-600">• Payment received from Student</div>
                   </div>
                 </div>
 

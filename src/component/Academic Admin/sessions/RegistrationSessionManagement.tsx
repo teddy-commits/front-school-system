@@ -34,20 +34,35 @@ interface ApiErrorResponse {
 
 type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
 
+// Mapping between UI display and backend values
+const semesterMapping = {
+  'Semester 1': 'FALL',
+  'Semester 2': 'SPRING',
+  'Semester 3': 'SUMMER'
+};
+
+// Reverse mapping for displaying backend values in UI
+const reverseSemesterMapping: Record<string, string> = {
+  'FALL': 'Semester 1',
+  'SPRING': 'Semester 2',
+  'SUMMER': 'Semester 3'
+};
+
 const RegistrationSessionManagement: React.FC = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [formData, setFormData] = useState({
-    semester: 'FALL',
+    semester: 'Semester 1', // UI uses Semester 1,2,3
     academicYear: new Date().getFullYear(),
     startDate: '',
     endDate: '',
     description: ''
   });
 
-  const semesters = ['FALL', 'SPRING', 'SUMMER'];
+  // UI display options
+  const uiSemesters = ['Semester 1', 'Semester 2', 'Semester 3'];
   const years = [2024, 2025, 2026, 2027];
 
   useEffect(() => {
@@ -67,9 +82,26 @@ const RegistrationSessionManagement: React.FC = () => {
     setIsLoading(false);
   };
 
+  // Convert UI semester to backend semester before sending
+  const getBackendSemester = (uiSemester: string): string => {
+    return semesterMapping[uiSemester as keyof typeof semesterMapping] || 'FALL';
+  };
+
+  // Convert backend semester to UI semester for display
+  const getUISemester = (backendSemester: string): string => {
+    return reverseSemesterMapping[backendSemester] || backendSemester;
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = await registrationSessionApi.createSession(formData) as ApiResponse;
+    
+    // Prepare data for backend
+    const backendData = {
+      ...formData,
+      semester: getBackendSemester(formData.semester)
+    };
+    
+    const result = await registrationSessionApi.createSession(backendData) as ApiResponse;
     if (result.success) {
       toast.success('Registration session created successfully');
       setShowCreateModal(false);
@@ -86,7 +118,13 @@ const RegistrationSessionManagement: React.FC = () => {
     e.preventDefault();
     if (!editingSession) return;
     
-    const result = await registrationSessionApi.updateSession(editingSession.id, formData) as ApiResponse;
+    // Prepare data for backend
+    const backendData = {
+      ...formData,
+      semester: getBackendSemester(formData.semester)
+    };
+    
+    const result = await registrationSessionApi.updateSession(editingSession.id, backendData) as ApiResponse;
     if (result.success) {
       toast.success('Registration session updated successfully');
       setEditingSession(null);
@@ -142,7 +180,7 @@ const RegistrationSessionManagement: React.FC = () => {
   const handleEditClick = (session: Session) => {
     setEditingSession(session);
     setFormData({
-      semester: session.semester,
+      semester: getUISemester(session.semester), // Convert backend to UI format
       academicYear: session.academicYear,
       startDate: session.startDate.split('T')[0],
       endDate: session.endDate.split('T')[0],
@@ -152,7 +190,7 @@ const RegistrationSessionManagement: React.FC = () => {
 
   const resetForm = () => {
     setFormData({
-      semester: 'FALL',
+      semester: 'Semester 1',
       academicYear: new Date().getFullYear(),
       startDate: '',
       endDate: '',
@@ -221,7 +259,7 @@ const RegistrationSessionManagement: React.FC = () => {
               </p>
               {currentActiveSession && (
                 <p className="text-sm text-gray-600">
-                  {currentActiveSession.semester} {currentActiveSession.academicYear}
+                  {getUISemester(currentActiveSession.semester)} {currentActiveSession.academicYear}
                 </p>
               )}
             </div>
@@ -278,7 +316,9 @@ const RegistrationSessionManagement: React.FC = () => {
                   const StatusIcon = status.icon;
                   return (
                     <tr key={session.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900">{session.semester}</td>
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                        {getUISemester(session.semester)}
+                      </td>
                       <td className="px-6 py-4 text-sm text-gray-600">{session.academicYear}</td>
                       <td className="px-6 py-4 text-sm text-gray-600">{formatDate(session.startDate)}</td>
                       <td className="px-6 py-4 text-sm text-gray-600">{formatDate(session.endDate)}</td>
@@ -289,10 +329,10 @@ const RegistrationSessionManagement: React.FC = () => {
                             {status.text}
                           </span>
                         </div>
-                      </td>
+                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
                         {session.description || '-'}
-                      </td>
+                       </td>
                       <td className="px-6 py-4">
                         <div className="flex justify-center space-x-2">
                           <button
@@ -328,7 +368,7 @@ const RegistrationSessionManagement: React.FC = () => {
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
-                      </td>
+                       </td>
                     </tr>
                   );
                 })}
@@ -381,7 +421,7 @@ const RegistrationSessionManagement: React.FC = () => {
                     onChange={(e) => setFormData({...formData, semester: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                   >
-                    {semesters.map(s => <option key={s} value={s}>{s}</option>)}
+                    {uiSemesters.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
                 <div>
@@ -426,7 +466,7 @@ const RegistrationSessionManagement: React.FC = () => {
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  placeholder="e.g., Fall 2024 Registration Period"
+                  placeholder="e.g., Semester 1 Registration Period"
                 />
               </div>
 
