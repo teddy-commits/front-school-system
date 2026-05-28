@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Plus, Edit, Trash2, Search, DollarSign, 
-  RefreshCw, X, CheckCircle, AlertCircle, Banknote
+  RefreshCw, X, CheckCircle, AlertCircle, Banknote,
+  Users, Loader, Calendar, FileText, Send
 } from 'lucide-react';
 import { financeApi } from '../../../api/modules/financeApi';
 import { registrationApi } from '../../../api/modules/registrationApi';
@@ -29,6 +30,8 @@ interface Student {
   fullName: string;
   studentId: string;
   email: string;
+  department?: string;
+  academicYearLevel?: number;
 }
 
 // API Response types
@@ -57,6 +60,7 @@ const FeeManagement: React.FC = () => {
   const [selectedFee, setSelectedFee] = useState<FeeStructure | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [showBulkGenerateModal, setShowBulkGenerateModal] = useState(false);
 
   const feeTypes = ['ALL', 'TUITION', 'REGISTRATION', 'LIBRARY', 'LABORATORY', 'SPORTS', 'EXAMINATION', 'ID_CARD'];
 
@@ -72,15 +76,9 @@ const FeeManagement: React.FC = () => {
   const fetchFeeStructures = async () => {
     setIsLoading(true);
     try {
-      console.log('Fetching fee structures...');
       const result = await financeApi.getAllFeeStructures() as ApiResponse<any>;
-      console.log('API Response:', result);
       
       if (result.success && 'data' in result) {
-        console.log('Data received:', result.data);
-        console.log('Is data an array?', Array.isArray(result.data));
-        console.log('Data type:', typeof result.data);
-        
         let feeData: FeeStructure[] = [];
         if (Array.isArray(result.data)) {
           feeData = result.data;
@@ -90,7 +88,6 @@ const FeeManagement: React.FC = () => {
           } else if (result.data.items && Array.isArray(result.data.items)) {
             feeData = result.data.items;
           } else {
-            console.warn('Unexpected data structure:', result.data);
             feeData = [];
           }
         }
@@ -98,7 +95,6 @@ const FeeManagement: React.FC = () => {
         setFeeStructures(feeData);
         toast.success(`Loaded ${feeData.length} fee structures`);
       } else if (!result.success && 'message' in result) {
-        console.error('API Error:', result.message);
         toast.error(result.message || 'Failed to load fee structures');
         setFeeStructures([]);
       } else {
@@ -202,6 +198,13 @@ const FeeManagement: React.FC = () => {
           <p className="text-sm text-gray-500">Manage university fee structures and charges</p>
         </div>
         <div className="flex space-x-3">
+          <button
+            onClick={() => setShowBulkGenerateModal(true)}
+            className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+          >
+            <Users className="w-4 h-4 mr-2" />
+            Bulk Generate Fees
+          </button>
           <button
             onClick={() => setShowGenerateModal(true)}
             className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
@@ -411,7 +414,7 @@ const FeeManagement: React.FC = () => {
         />
       )}
 
-      {/* Generate Student Fee Modal */}
+      {/* Generate Student Fee Modal (Single) */}
       {showGenerateModal && (
         <GenerateStudentFeeModal 
           students={students}
@@ -420,17 +423,31 @@ const FeeManagement: React.FC = () => {
           onSuccess={fetchFeeStructures}
         />
       )}
+
+      {/* Bulk Generate Fees Modal */}
+      {showBulkGenerateModal && (
+        <BulkGenerateFeesModal 
+          students={students}
+          feeStructures={feeStructuresArray}
+          onClose={() => setShowBulkGenerateModal(false)} 
+          onSuccess={() => {
+            fetchFeeStructures();
+            toast.success('Bulk fee generation completed!');
+          }}
+        />
+      )}
     </div>
   );
 };
+
 // Create Fee Structure Modal Component
 const CreateFeeStructureModal: React.FC<{ onClose: () => void; onSuccess: () => void }> = ({ onClose, onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    feeType: 'TUITION',
+    feeType: 'REGISTRATION',
     category: 'SEMESTER',
-    description: '',
-    amount: 0,
+    description: 'Course Registration Fee',
+    amount: 1500,
     department: '',
     faculty: '',
     isMandatory: true,
@@ -451,10 +468,9 @@ const CreateFeeStructureModal: React.FC<{ onClose: () => void; onSuccess: () => 
     setIsLoading(true);
     
     const formattedData = {
-    ...formData,
-    dueDate: formData.dueDate ? `${formData.dueDate}T00:00:00` : ''  // Empty string instead of undefined
-  };
-  
+      ...formData,
+      dueDate: formData.dueDate ? `${formData.dueDate}T00:00:00` : ''  
+    };
     
     const result = await financeApi.createFeeStructure(formattedData) as ApiResponse;
     if (result.success) {
@@ -468,8 +484,6 @@ const CreateFeeStructureModal: React.FC<{ onClose: () => void; onSuccess: () => 
     }
     setIsLoading(false);
   };
-
-  
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -509,12 +523,26 @@ const CreateFeeStructureModal: React.FC<{ onClose: () => void; onSuccess: () => 
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Amount (ETB)</label>
               <input type="number" name="amount" required value={formData.amount} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
               <input type="date" name="dueDate" value={formData.dueDate} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Semester</label>
+              <select name="semester" value={formData.semester} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg">
+                <option value="FALL">Fall</option>
+                <option value="SPRING">Spring</option>
+                <option value="SUMMER">Summer</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Academic Year</label>
+              <input type="number" name="academicYear" value={formData.academicYear} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg" />
             </div>
           </div>
           <div className="flex items-center">
@@ -603,7 +631,7 @@ const EditFeeStructureModal: React.FC<{ fee: FeeStructure; onClose: () => void; 
   );
 };
 
-// Generate Student Fee Modal
+// Generate Student Fee Modal (Single Student)
 const GenerateStudentFeeModal: React.FC<{ students: Student[]; feeStructures: FeeStructure[]; onClose: () => void; onSuccess: () => void }> = ({ students, feeStructures, onClose, onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -613,34 +641,35 @@ const GenerateStudentFeeModal: React.FC<{ students: Student[]; feeStructures: Fe
     academicYear: new Date().getFullYear()
   });
 
- const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  
-  if (!formData.studentId || !formData.feeStructureId) {
-    toast.error('Please select both student and fee structure');
-    return;
-  }
-  
-  setIsLoading(true);
-  
-  const result = await financeApi.generateStudentFee(
-    parseInt(formData.studentId),      // Convert to number
-    parseInt(formData.feeStructureId), // Convert to number
-    formData.semester, 
-    formData.academicYear
-  ) as ApiResponse;
-  
-  if (result.success) {
-    toast.success('Fee generated for student');
-    onSuccess();
-    onClose();
-  } else if (!result.success && 'message' in result) {
-    toast.error(result.message);
-  } else {
-    toast.error('Failed to generate fee');
-  }
-  setIsLoading(false);
-};
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.studentId || !formData.feeStructureId) {
+      toast.error('Please select both student and fee structure');
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    const result = await financeApi.generateStudentFee(
+      parseInt(formData.studentId),
+      parseInt(formData.feeStructureId),
+      formData.semester, 
+      formData.academicYear
+    ) as ApiResponse;
+    
+    if (result.success) {
+      toast.success('Fee generated for student');
+      onSuccess();
+      onClose();
+    } else if (!result.success && 'message' in result) {
+      toast.error(result.message);
+    } else {
+      toast.error('Failed to generate fee');
+    }
+    setIsLoading(false);
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'ETB' }).format(amount || 0);
   };
@@ -688,6 +717,239 @@ const GenerateStudentFeeModal: React.FC<{ students: Student[]; feeStructures: Fe
             <button type="submit" disabled={isLoading} className="px-4 py-2 bg-blue-600 text-white rounded-lg">Generate</button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+};
+
+// Bulk Generate Fees Modal
+// Bulk Generate Fees Modal - Fixed with formatCurrency defined inside
+const BulkGenerateFeesModal: React.FC<{ 
+  students: Student[]; 
+  feeStructures: FeeStructure[]; 
+  onClose: () => void; 
+  onSuccess: () => void 
+}> = ({ students, feeStructures, onClose, onSuccess }) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedFeeStructureId, setSelectedFeeStructureId] = useState<string>('');
+  const [selectedSemester, setSelectedSemester] = useState<string>('FALL');
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState<number>(new Date().getFullYear());
+  const [progress, setProgress] = useState({ current: 0, total: 0, successful: 0, failed: 0 });
+  const [showProgress, setShowProgress] = useState(false);
+
+  // Define formatCurrency inside the component
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', { 
+      style: 'currency', 
+      currency: 'ETB',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount || 0);
+  };
+
+  // Filter only registration fee structures
+  const registrationFeeStructures = feeStructures?.filter(f => 
+    f.feeType === 'REGISTRATION' || f.feeType === 'TUITION'
+  ) || [];
+
+  const selectedFeeStructure = registrationFeeStructures.find(f => f.id.toString() === selectedFeeStructureId);
+
+  const handleBulkGenerate = async () => {
+    if (!selectedFeeStructureId) {
+      toast.error('Please select a fee structure');
+      return;
+    }
+
+    if (!students || students.length === 0) {
+      toast.error('No students found');
+      return;
+    }
+
+    if (!confirm(`This will generate "${selectedFeeStructure?.description}" fee for ALL ${students.length} students. Continue?`)) {
+      return;
+    }
+
+    setIsLoading(true);
+    setShowProgress(true);
+    setProgress({ current: 0, total: students.length, successful: 0, failed: 0 });
+
+    let successful = 0;
+    let failed = 0;
+
+    for (let i = 0; i < students.length; i++) {
+      const student = students[i];
+      try {
+        const result = await financeApi.generateStudentFee(
+          student.id,
+          parseInt(selectedFeeStructureId),
+          selectedSemester,
+          selectedAcademicYear
+        ) as ApiResponse;
+        
+        if (result.success) {
+          successful++;
+        } else {
+          failed++;
+          console.error(`Failed to generate fee for ${student.fullName}:`, result.message);
+        }
+      } catch (error) {
+        failed++;
+        console.error(`Error generating fee for ${student.fullName}:`, error);
+      }
+      
+      setProgress({ 
+        current: i + 1, 
+        total: students.length, 
+        successful, 
+        failed 
+      });
+      
+      // Small delay to avoid overwhelming the API
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    toast.success(`Bulk generation completed! Successful: ${successful}, Failed: ${failed}`);
+    onSuccess();
+    
+    setTimeout(() => {
+      onClose();
+    }, 2000);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg w-full max-w-lg">
+        <div className="flex justify-between items-center p-6 border-b">
+          <h2 className="text-xl font-semibold flex items-center">
+            <Users className="w-5 h-5 mr-2 text-purple-600" />
+            Bulk Generate Fees
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        
+        <div className="p-6 space-y-4">
+          <div className="bg-purple-50 rounded-lg p-4 mb-4">
+            <p className="text-sm text-purple-800">
+              <strong>📋 Info:</strong> This will generate fees for all {students.length} students at once.
+            </p>
+          </div>
+
+          {registrationFeeStructures.length === 0 && (
+            <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+              <p className="text-sm text-yellow-800 flex items-center">
+                <AlertCircle className="w-4 h-4 mr-2" />
+                No REGISTRATION or TUITION fee structures found.
+              </p>
+              <p className="text-xs text-yellow-700 mt-2">
+                Please create a fee structure with type "REGISTRATION" or "TUITION" first.
+              </p>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Fee Structure *</label>
+            <select
+              value={selectedFeeStructureId}
+              onChange={(e) => setSelectedFeeStructureId(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+              required
+              disabled={registrationFeeStructures.length === 0}
+            >
+              <option value="">Select Fee Structure</option>
+              {registrationFeeStructures.map(f => (
+                <option key={f.id} value={f.id}>
+                  {f.description} - {formatCurrency(f.amount)} ({f.feeType})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Semester</label>
+              <select
+                value={selectedSemester}
+                onChange={(e) => setSelectedSemester(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+              >
+                <option value="FALL">Fall</option>
+                <option value="SPRING">Spring</option>
+                <option value="SUMMER">Summer</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Academic Year</label>
+              <input
+                type="number"
+                value={selectedAcademicYear}
+                onChange={(e) => setSelectedAcademicYear(parseInt(e.target.value))}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
+          </div>
+
+          {selectedFeeStructure && (
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="text-sm text-gray-600">Selected Fee Details:</p>
+              <div className="mt-2 space-y-1 text-sm">
+                <p><span className="font-medium">Description:</span> {selectedFeeStructure.description}</p>
+                <p><span className="font-medium">Amount:</span> {formatCurrency(selectedFeeStructure.amount)}</p>
+                <p><span className="font-medium">Type:</span> {selectedFeeStructure.feeType}</p>
+                <p><span className="font-medium">Due Date:</span> {selectedFeeStructure.dueDate ? new Date(selectedFeeStructure.dueDate).toLocaleDateString() : 'Not set'}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Progress Bar */}
+          {showProgress && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Progress:</span>
+                <span className="text-gray-600">{progress.current} / {progress.total}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${(progress.current / progress.total) * 100}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-green-600">✓ Successful: {progress.successful}</span>
+                <span className="text-red-600">✗ Failed: {progress.failed}</span>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+              disabled={isLoading}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleBulkGenerate}
+              disabled={isLoading || !selectedFeeStructureId || registrationFeeStructures.length === 0}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:opacity-50 flex items-center"
+            >
+              {isLoading ? (
+                <>
+                  <Loader className="w-4 h-4 animate-spin mr-2" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Generate for All {students.length} Students
+                </>
+              )}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

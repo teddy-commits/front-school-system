@@ -13,6 +13,7 @@ import { registrationApi } from '../../api/modules/registrationApi';
 import SectionManagement from '../Academic Admin/sections/SectionManagement';
 import AdminSectionEnrollment from './sections/AdminSectionEnrollment';
 import toast from 'react-hot-toast';
+import CourseAssignment from './courses/CourseAssignment';
 
 interface Course {
   id: number;
@@ -168,6 +169,7 @@ const AcademicAdminDashboard: React.FC = () => {
             <Route path="reports" element={<AcademicReports />} />
             <Route path="sessions" element={<RegistrationSessionManagement />} />
             <Route path="sections" element={<SectionManagement />} />
+            <Route path="course-assignment" element={<CourseAssignment/>}/>
           </Routes>
         </main>
       </div>

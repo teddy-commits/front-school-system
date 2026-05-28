@@ -205,6 +205,7 @@ export const registrationApi = {
       return handleApiError(error);
     }
   },
+  
   updateUser: async (id: number, data: UpdateUserData) => {
     try {
       const response = await apiClient.put(`/admin/users/${id}`, data);
@@ -265,6 +266,107 @@ export const registrationApi = {
         ? `/admin/users/search?keyword=${keyword}&role=${role}`
         : `/admin/users/search?keyword=${keyword}`;
       const response = await apiClient.get(url);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  getAvailableCoursesForStudent: async (studentId: number, semester: string, academicYear: number) => {
+    try {
+      const response = await apiClient.get(`/registration/students/${studentId}/available-courses`, {
+        params: { semester, academicYear }
+      });
+      return { success: true, data: response.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  getStudentRegisteredCourses: async (studentId: number, semester: string, academicYear: number) => {
+    try {
+      const response = await apiClient.get(`/registration/students/${studentId}/registered-courses`, {
+        params: { semester, academicYear }
+      });
+      return { success: true, data: response.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  registerCourse: async (data: { studentId: number; courseId: number; semester: string; academicYear: number }) => {
+    try {
+      const response = await apiClient.post('/registration/courses/register', data);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  dropCourse: async (studentId: number, courseId: number, semester: string, academicYear: number, reason?: string) => {
+    try {
+      const response = await apiClient.delete('/registration/courses/drop', {
+        params: { studentId, courseId, semester, academicYear, reason }
+      });
+      return { success: true, data: response.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  getRegistrationSummary: async (studentId: number, semester: string, academicYear: number) => {
+    try {
+      const response = await apiClient.get(`/registration/students/${studentId}/summary`, {
+        params: { semester, academicYear }
+      });
+      return { success: true, data: response.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  // ========== NEW METHODS FOR COURSE ASSIGNMENT ==========
+
+  /**
+   * Get students preview for a specific department and year level
+   */
+  getStudentsPreview: async (departmentId: number, academicYearLevel: number) => {
+    try {
+      const response = await apiClient.get('/registration/course-assignments/students/preview', {
+        params: { departmentId, academicYearLevel }
+      });
+      return { success: true, data: response.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  /**
+   * Get courses already assigned to a department/year/semester
+   */
+  getAssignedCourses: async (departmentId: number, academicYearLevel: number, semester: string, academicYear: number) => {
+    try {
+      const response = await apiClient.get('/registration/course-assignments/assigned-courses', {
+        params: { departmentId, academicYearLevel, semester, academicYear }
+      });
+      return { success: true, data: response.data };
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+
+  /**
+   * Assign courses to all students in a department and year level
+   */
+  assignCoursesToDepartment: async (data: {
+    departmentId: number;
+    academicYearLevel: number;
+    semester: string;
+    academicYear: number;
+    courseIds: number[];
+  }) => {
+    try {
+      const response = await apiClient.post('/registration/course-assignments/assign', data);
       return { success: true, data: response.data };
     } catch (error) {
       return handleApiError(error);
