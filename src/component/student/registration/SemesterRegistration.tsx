@@ -92,6 +92,8 @@ interface Fee {
   dueAmount: number;
   status: string;
   dueDate: string;
+   semester?: string;    
+  academicYear?: number;
 }
 
 interface PaymentData {
@@ -102,6 +104,8 @@ interface PaymentData {
   bankName?: string;
   mobileNumber?: string;
   remarks?: string;
+  semester: string;
+  academicYear: number;
 }
 
 // ==================== API Response Types ====================
