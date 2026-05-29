@@ -20,7 +20,6 @@ interface AddInstructorModalProps {
   onSuccess: () => void;
 }
 
-// API Response types
 interface ApiSuccessResponse<T = any> {
   success: true;
   data: T;
@@ -74,11 +73,9 @@ const handleAssign = async () => {
   }
 
   setIsLoading(true);
-  
-  // ✅ Fix: Pass an object with sectionId and instructorId (as number, NOT email)
   const result = await sectionApi.addInstructorToSection({
     sectionId: sectionId,
-    instructorId: selectedInstructor.id  // Use id, not email
+    instructorId: selectedInstructor.id
   }) as ApiResponse;
 
   if (result.success) {

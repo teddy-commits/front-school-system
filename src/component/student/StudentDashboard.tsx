@@ -14,6 +14,7 @@ import { financeApi } from '../../api/modules/financeApi';
 import SemesterRegistration from './registration/SemesterRegistration';
 import StudentSectionEnrollment from './sections/StudentSectionEnrollment';
 
+
 interface CGPAResponse {
   success: boolean;
   data?: number;
@@ -152,6 +153,7 @@ const StudentDashboard: React.FC = () => {
                 enrolledCourses={enrolledCourses}
               />
             } />
+           
             <Route path="courses" element={<StudentCourses />} />
             <Route path="grades" element={<StudentGrades />} />
             <Route path="fees" element={<StudentFees />} />

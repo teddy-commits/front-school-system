@@ -58,7 +58,6 @@ interface EnrolledStudent {
   status: string;
 }
 
-// API Response types
 interface ApiSuccessResponse<T = any> {
   success: true;
   data: T;
@@ -133,7 +132,6 @@ const AdminSectionEnrollment: React.FC = () => {
   const fetchAvailableStudents = async () => {
     const result = await registrationApi.getAllStudents() as ApiResponse<Student[]>;
     if (result.success && 'data' in result && Array.isArray(result.data)) {
-      // Filter out students already enrolled in this section
       const enrolledIds = enrolledStudents.map(s => s.studentId);
       const available = result.data.filter(
         (student: Student) => !enrolledIds.includes(student.id) && student.isActive
@@ -172,7 +170,6 @@ const handleAddStudent = async (studentId: number) => {
   
   setIsLoading(true);
   
-  // ✅ FIX: Pass an object, not 4 separate arguments
   const result = await enrollmentApi.enrollInSection({
     studentId: studentId,
     sectionId: selectedSection.id,

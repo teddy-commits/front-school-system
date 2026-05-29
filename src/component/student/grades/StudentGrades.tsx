@@ -50,7 +50,6 @@ const StudentGrades: React.FC = () => {
       const result = await gradeApi.getStudentGrades(userId!) as ApiResponse<Grade[]>;
       if (result.success && 'data' in result) {
         setGrades(result.data);
-        // Group by semester
         const grouped = result.data.reduce((acc: Record<string, Grade[]>, grade: Grade) => {
           const key = `${grade.semester} ${grade.academicYear}`;
           if (!acc[key]) acc[key] = [];
@@ -124,7 +123,6 @@ const StudentGrades: React.FC = () => {
         <p className="text-sm text-gray-500">View your academic performance and CGPA</p>
       </div>
 
-      {/* CGPA Card */}
       <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl p-6 mb-6 text-white">
         <div className="flex justify-between items-center">
           <div>
@@ -138,7 +136,6 @@ const StudentGrades: React.FC = () => {
         </div>
       </div>
 
-      {/* Grades by Semester */}
       {Object.entries(groupedGrades).map(([semester, semesterGrades]) => {
         const semesterGPA = calculateSemesterGPA(semesterGrades);
         return (

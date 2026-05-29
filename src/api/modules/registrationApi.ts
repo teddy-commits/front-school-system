@@ -325,11 +325,6 @@ export const registrationApi = {
     }
   },
 
-  // ========== NEW METHODS FOR COURSE ASSIGNMENT ==========
-
-  /**
-   * Get students preview for a specific department and year level
-   */
   getStudentsPreview: async (departmentId: number, academicYearLevel: number) => {
     try {
       const response = await apiClient.get('/registration/course-assignments/students/preview', {
@@ -341,9 +336,6 @@ export const registrationApi = {
     }
   },
 
-  /**
-   * Get courses already assigned to a department/year/semester
-   */
   getAssignedCourses: async (departmentId: number, academicYearLevel: number, semester: string, academicYear: number) => {
     try {
       const response = await apiClient.get('/registration/course-assignments/assigned-courses', {
@@ -355,9 +347,6 @@ export const registrationApi = {
     }
   },
 
-  /**
-   * Assign courses to all students in a department and year level
-   */
   assignCoursesToDepartment: async (data: {
     departmentId: number;
     academicYearLevel: number;

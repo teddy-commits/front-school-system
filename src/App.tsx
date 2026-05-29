@@ -46,7 +46,6 @@ function AppContent() {
   return (
     <Router>
       <Routes>
-        {/* Public Routes */}
         <Route path="/" element={<Homepage />} />
         <Route path="/login/staff" element={<StaffLogin />} />
         <Route path="/login/student" element={<StudentLogin />} />
@@ -61,7 +60,6 @@ function AppContent() {
   }
 />
         
-        {/* Student Routes */}
        <Route
   path="/student-dashboard/*"
   element={

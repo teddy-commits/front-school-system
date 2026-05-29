@@ -65,7 +65,6 @@ const AdminDashboard: React.FC = () => {
 
   const fetchStats = async () => {
     try {
-      // Fetch user statistics (students and instructors count)
       const statsResult = await registrationApi.getUserStatistics() as ApiResponse<Record<string, number>>;
       
       let totalStudents = 0;
@@ -75,14 +74,11 @@ const AdminDashboard: React.FC = () => {
         totalStudents = statsResult.data.totalStudents || statsResult.data.STUDENT || 0;
         totalInstructors = statsResult.data.totalInstructors || statsResult.data.INSTRUCTOR || 0;
       }
-      
-      // Fetch total courses
       const coursesResult = await courseApi.getAllCourses() as ApiResponse<any[]>;
       const totalCourses = (coursesResult.success && 'data' in coursesResult && Array.isArray(coursesResult.data)) 
         ? coursesResult.data.length 
         : 0;
-      
-      // Fetch total revenue from payments
+ 
       const paymentsResult = await financeApi.getAllPayments() as ApiResponse<any[]>;
       let totalRevenue = 0;
       if (paymentsResult.success && 'data' in paymentsResult && Array.isArray(paymentsResult.data)) {
@@ -97,7 +93,6 @@ const AdminDashboard: React.FC = () => {
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
-      // Set default values if APIs fail
       setStats({
         totalStudents: 0,
         totalInstructors: 0,
@@ -128,7 +123,6 @@ const AdminDashboard: React.FC = () => {
   const handleQuickAction = (action: string) => {
     switch (action) {
       case 'student':
-        // Navigate to users page with add modal open
         navigate('/dashboard/users');
         break;
       case 'course':
@@ -254,8 +248,6 @@ const AdminDashboard: React.FC = () => {
                   </div>
                 </div>
               </div>
-
-              {/* Quick Actions and Recent Activity - Responsive Grid */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
                 <div className="bg-white rounded-lg shadow p-4 md:p-6">
                   <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-3 md:mb-4">Quick Actions</h3>

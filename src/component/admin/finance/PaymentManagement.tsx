@@ -17,7 +17,6 @@ interface Payment {
   paymentDate: string;
 }
 
-// API Response types
 interface ApiSuccessResponse<T = any> {
   success: true;
   data: T;
@@ -106,8 +105,6 @@ const PaymentManagement: React.FC = () => {
       toast.error('Failed to refund payment');
     }
   };
-
-  // Format as Ethiopian Birr (ETB)
   const formatCurrency = (amount: number) => {
     return `ETB ${(amount || 0).toLocaleString('en-US', { 
       minimumFractionDigits: 2, 
@@ -319,7 +316,6 @@ const PaymentManagement: React.FC = () => {
         )}
       </div>
 
-      {/* Refund Modal */}
       {showRefundModal && selectedPayment && (
         <RefundModal 
           payment={selectedPayment} 
@@ -331,7 +327,6 @@ const PaymentManagement: React.FC = () => {
   );
 };
 
-// Refund Modal Component
 const RefundModal: React.FC<{ 
   payment: Payment; 
   onClose: () => void; 

@@ -44,13 +44,11 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({ course, onClose
             </div>
           </div>
 
-          {/* Description */}
           <div>
             <h3 className="text-md font-semibold text-gray-800 mb-2">Description</h3>
             <p className="text-gray-600">{course.description || 'No description provided.'}</p>
           </div>
 
-          {/* Course Details Grid */}
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-center space-x-3"><BookOpen className="w-5 h-5 text-indigo-500" /><div><p className="text-xs text-gray-500">Credits</p><p className="text-sm font-medium">{course.credits}</p></div></div>
             <div className="flex items-center space-x-3"><Calendar className="w-5 h-5 text-green-500" /><div><p className="text-xs text-gray-500">Semester</p><p className="text-sm font-medium">{course.semester} {course.academicYear}</p></div></div>
@@ -60,7 +58,6 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({ course, onClose
             <div className="flex items-center space-x-3"><FileText className="w-5 h-5 text-teal-500" /><div><p className="text-xs text-gray-500">Prerequisites</p><p className="text-sm font-medium">{course.prerequisites || 'None'}</p></div></div>
           </div>
 
-          {/* Instructor Information */}
           <div>
             <h3 className="text-md font-semibold text-gray-800 mb-3">Instructor</h3>
             <div className="bg-gray-50 rounded-lg p-4">

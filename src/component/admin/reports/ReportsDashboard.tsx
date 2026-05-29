@@ -131,7 +131,6 @@ const ReportsDashboard: React.FC = () => {
         toast.error(result.message);
       }
       
-      // Fetch additional statistics
       const studentsResult = await registrationApi.getAllStudents() as ApiResponse<Student[]>;
       const coursesResult = await courseApi.getAllCourses() as ApiResponse<Course[]>;
       

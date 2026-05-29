@@ -85,13 +85,11 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({ course, onClose
             </div>
           </div>
 
-          {/* Description */}
           <div className="border-t pt-4">
             <h4 className="font-semibold text-gray-800 mb-2">Description</h4>
             <p className="text-sm text-gray-600">{course.description || 'No description provided.'}</p>
           </div>
 
-          {/* Course Information Grid */}
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-center space-x-3">
               <Calendar className="w-4 h-4 text-gray-400" />
@@ -122,8 +120,6 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({ course, onClose
               </div>
             </div>
           </div>
-
-          {/* Department & Faculty */}
           <div className="grid grid-cols-2 gap-4 border-t pt-4">
             <div>
               <p className="text-xs text-gray-500">Department</p>
@@ -135,7 +131,6 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({ course, onClose
             </div>
           </div>
 
-          {/* Instructor Information */}
           <div className="border-t pt-4">
             <h4 className="font-semibold text-gray-800 mb-3">Instructor Information</h4>
             <div className="space-y-2">
@@ -155,8 +150,6 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({ course, onClose
               </div>
             </div>
           </div>
-
-          {/* Additional Information */}
           {course.prerequisites && (
             <div className="border-t pt-4">
               <h4 className="font-semibold text-gray-800 mb-2">Prerequisites</h4>
@@ -164,7 +157,6 @@ const CourseDetailsModal: React.FC<CourseDetailsModalProps> = ({ course, onClose
             </div>
           )}
 
-          {/* Timestamps */}
           <div className="border-t pt-4 text-xs text-gray-400">
             <p>Created: {formatDate(course.createdAt)}</p>
             <p className="mt-1">Last Updated: {formatDate(course.updatedAt)}</p>

@@ -33,8 +33,6 @@ interface FormData {
   officeLocation: string;
   isActive: boolean;
 }
-
-// API Response types
 interface ApiSuccessResponse<T = any> {
   success: true;
   data: T;

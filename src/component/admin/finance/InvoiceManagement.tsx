@@ -28,7 +28,6 @@ interface Student {
   department: string;
 }
 
-// API Response types
 interface ApiSuccessResponse<T = any> {
   success: true;
   data: T;
@@ -120,7 +119,6 @@ const InvoiceManagement: React.FC = () => {
     }
   };
 
-  // Format as Ethiopian Birr (ETB)
   const formatCurrency = (amount: number) => {
     return `ETB ${(amount || 0).toLocaleString('en-US', { 
       minimumFractionDigits: 2, 
@@ -320,7 +318,6 @@ const InvoiceManagement: React.FC = () => {
         )}
       </div>
 
-      {/* Generate Invoice Modal */}
       {showGenerateModal && (
         <GenerateInvoiceModal 
           students={students} 
@@ -331,8 +328,6 @@ const InvoiceManagement: React.FC = () => {
     </div>
   );
 };
-
-// Generate Invoice Modal
 const GenerateInvoiceModal: React.FC<{ 
   students: Student[]; 
   onClose: () => void; 

@@ -60,7 +60,6 @@ interface ManagementData {
   role: string;
 }
 
-// API Response types
 interface ApiSuccessResponse<T = any> {
   success: true;
   data: T;
@@ -94,7 +93,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
     salary: ''
   });
 
-  // Fetch departments on component mount
   useEffect(() => {
     fetchDepartments();
   }, []);
@@ -117,7 +115,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
     const { name, value } = e.target;
     
     if (name === 'departmentId') {
-      // Find selected department and auto-fill faculty
       const selectedDept = departments.find(d => d.id.toString() === value);
       if (selectedDept) {
         setFormData({ 
@@ -141,7 +138,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
 
     switch (userType) {
       case 'INSTRUCTOR':
-        // Validate department for instructor
         if (!formData.departmentId) {
           toast.error('Department is required for Instructor');
           setIsLoading(false);
@@ -216,7 +212,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
     setIsLoading(false);
   };
 
-  // Check if department should be required
   const isDepartmentRequired = () => {
     return userType === 'INSTRUCTOR';
   };
@@ -272,7 +267,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
             </div>
           </div>
 
-          {/* Contact Fields */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
@@ -309,7 +303,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
             />
           </div>
 
-          {/* Instructor Fields */}
           {userType === 'INSTRUCTOR' && (
             <>
               <div className="grid grid-cols-2 gap-4">
@@ -337,7 +330,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
                 </div>
               </div>
 
-              {/* Department Selection - Required for INSTRUCTOR only */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Department *</label>
@@ -378,7 +370,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
             </>
           )}
 
-          {/* Academic Administrator Fields - No Department */}
           {userType === 'ACADEMIC_ADMINISTRATOR' && (
             <>
               <div className="grid grid-cols-2 gap-4">
@@ -408,7 +399,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onSuccess })
             </>
           )}
 
-          {/* Management Fields - No Department */}
           {userType === 'MANAGEMENT' && (
             <div className="grid grid-cols-2 gap-4">
               <div>

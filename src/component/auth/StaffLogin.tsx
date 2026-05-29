@@ -16,13 +16,9 @@ const StaffLogin: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Use loginIdentifier directly - this can be either email or staff ID
-    // The login function will handle it appropriately
     const success = await login(loginIdentifier, password, 'staff');
     
     if (success) {
-      // Get user role from localStorage
       const userRole = localStorage.getItem('userRole');
       
       const instructorRoles = ['INSTRUCTOR', 'PROFESSOR', 'SENIOR_INSTRUCTOR', 'ASSOCIATE_PROFESSOR', 'ASSISTANT_PROFESSOR'];
@@ -79,7 +75,6 @@ const StaffLogin: React.FC = () => {
                 </p>
               </div>
 
-              {/* Login Method Toggle */}
               <div className="mb-4 bg-gray-100 rounded-lg p-1 flex">
                 <button
                   type="button"

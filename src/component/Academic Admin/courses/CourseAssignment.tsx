@@ -72,13 +72,11 @@ const CourseAssignment: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Filter states
   const [selectedDepartment, setSelectedDepartment] = useState<number | null>(null);
   const [selectedYear, setSelectedYear] = useState<number>(1);
   const [selectedSemester, setSelectedSemester] = useState<string>('FALL');
   const [selectedAcademicYear, setSelectedAcademicYear] = useState<number>(new Date().getFullYear());
   
-  // UI states
   const [showPreview, setShowPreview] = useState(false);
   const [selectedCourses, setSelectedCourses] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -103,7 +101,6 @@ const CourseAssignment: React.FC = () => {
     }
   }, [selectedDepartment, selectedYear, selectedSemester, selectedAcademicYear, showPreview]);
 
-  // Type guard to check if response is success response
   const isSuccessResponse = <T,>(response: ApiResponse<T>): response is ApiSuccessResponse<T> => {
     return response.success === true && 'data' in response;
   };

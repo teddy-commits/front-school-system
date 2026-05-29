@@ -22,7 +22,6 @@ interface GetCourseEnrollmentsParams {
 }
 
 export const enrollmentApi = {
-  // ========== Course-based Enrollment (Legacy) ==========
   
   enrollInCourse: async (data: EnrollInCourseData) => {
     try {
@@ -60,7 +59,6 @@ export const enrollmentApi = {
     }
   },
 
-  // Get enrollments by course CODE (old - keep for backward compatibility)
   getCourseEnrollmentsByCode: async (courseCode: string) => {
     try {
       const response = await apiClient.get(`/grading/enrollments/course/courses/${courseCode}`);
@@ -94,8 +92,6 @@ export const enrollmentApi = {
       return handleApiError(error);
     }
   },
-
-  // ========== Section-based Enrollment (New) ==========
 
   enrollInSection: async ({ studentId, sectionId, semester, academicYear }: EnrollInSectionData) => {
     try {

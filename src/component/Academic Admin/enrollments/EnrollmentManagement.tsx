@@ -111,7 +111,6 @@ const EnrollmentManagement: React.FC = () => {
   const fetchAvailableStudents = async () => {
     const result = await registrationApi.getAllStudents() as ApiResponse<Student[]>;
     if (result.success && 'data' in result) {
-      // Get all students already enrolled in ANY section for this semester
       const enrolledResult = await enrollmentApi.getInstructorStudents(selectedSemester, selectedYear) as ApiResponse<any[]>;
       const enrolledStudentIds = (enrolledResult.success && 'data' in enrolledResult && Array.isArray(enrolledResult.data)) 
         ? enrolledResult.data.map((e: any) => e.studentId) 
@@ -253,8 +252,6 @@ const EnrollmentManagement: React.FC = () => {
         <h2 className="text-xl font-semibold text-gray-800">Section Enrollment Management</h2>
         <p className="text-sm text-gray-500">Manage student enrollments in course sections</p>
       </div>
-
-      {/* Filters */}
       <div className="bg-white rounded-lg shadow p-4 mb-6">
         <div className="flex flex-wrap gap-4 items-center">
           <div className="flex items-center space-x-2">
@@ -293,8 +290,6 @@ const EnrollmentManagement: React.FC = () => {
           </button>
         </div>
       </div>
-
-      {/* Sections List - Show when no section selected */}
       {!selectedSection ? (
         <div className="grid grid-cols-1 gap-6">
           {filteredSections.map((section) => (
@@ -353,7 +348,6 @@ const EnrollmentManagement: React.FC = () => {
         </div>
       ) : (
         <>
-          {/* Back Button */}
           <button
             onClick={() => {
               setSelectedSection(null);
@@ -363,8 +357,6 @@ const EnrollmentManagement: React.FC = () => {
           >
             ← Back to Sections
           </button>
-
-          {/* Section Header */}
           <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg p-6 mb-6 text-white">
             <div className="flex justify-between items-start">
               <div>
@@ -399,8 +391,6 @@ const EnrollmentManagement: React.FC = () => {
               </button>
             )}
           </div>
-
-          {/* Enrolled Students Table */}
           <div className="bg-white rounded-lg shadow overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -459,7 +449,6 @@ const EnrollmentManagement: React.FC = () => {
         </>
       )}
 
-      {/* Add Student Modal */}
       {showStudentModal && selectedSection && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-md">

@@ -20,8 +20,6 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-// ==================== Interfaces ====================
-
 interface AvailableCourse {
   courseId: number;
   courseCode: string;
@@ -108,7 +106,6 @@ interface PaymentData {
   academicYear: number;
 }
 
-// ==================== API Response Types ====================
 
 interface ApiSuccessResponse<T = any> {
   success: true;
@@ -124,18 +121,13 @@ interface ApiErrorResponse {
 
 type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
 
-// ==================== Type Guard ====================
-
 const isSuccessResponse = <T,>(response: ApiResponse<T>): response is ApiSuccessResponse<T> => {
   return response.success === true && 'data' in response;
 };
 
-// ==================== Component ====================
-
 const SemesterRegistration: React.FC = () => {
   const { userId, userFullName } = useAuth();
-  
-  // State
+
   const [availableCourses, setAvailableCourses] = useState<AvailableCourse[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [registeredCourses, setRegisteredCourses] = useState<RegisteredCourse[]>([]);
@@ -148,20 +140,14 @@ const SemesterRegistration: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [registeringCourseId, setRegisteringCourseId] = useState<number | null>(null);
-  
-  // Payment form state
   const [paymentMethod, setPaymentMethod] = useState<string>('BANK_TRANSFER');
   const [paymentReference, setPaymentReference] = useState<string>('');
   const [bankName, setBankName] = useState<string>('');
   const [mobileNumber, setMobileNumber] = useState<string>('');
   const [remarks, setRemarks] = useState<string>('');
-
-  // Constants
   const semesters: string[] = ['FALL', 'SPRING', 'SUMMER'];
   const years: number[] = [2024, 2025, 2026, 2027];
   const FEE_PER_CREDIT: number = 1500;
-
-  // Effects
   useEffect(() => {
     if (userId) {
       fetchAvailableCourses();
@@ -171,7 +157,6 @@ const SemesterRegistration: React.FC = () => {
     }
   }, [userId, selectedSemester, selectedYear]);
 
-  // Data fetching functions
   const fetchAvailableCourses = async (): Promise<void> => {
     if (!userId) return;
     try {
@@ -247,7 +232,6 @@ const SemesterRegistration: React.FC = () => {
     }
   };
 
-  // Cart functions
   const addToCart = (course: AvailableCourse): void => {
     if (cart.some(item => item.courseId === course.courseId)) {
       toast.error('Course already added to cart');
@@ -277,8 +261,6 @@ const SemesterRegistration: React.FC = () => {
   const calculateTotalFees = (): number => {
     return cart.reduce((sum, item) => sum + item.fee, 0);
   };
-
-  // Course registration functions
   const handleRegisterCourse = async (course: AvailableCourse): Promise<void> => {
     if (!userId) {
       toast.error('User not authenticated');
@@ -348,32 +330,22 @@ const SemesterRegistration: React.FC = () => {
     }
   };
 
-  // Payment functions - Students only VIEW and PAY, never GENERATE
-  // Updated payment functions - Better fee matching
 const handleOpenPaymentModal = async (): Promise<void> => {
   if (cart.length === 0) {
     toast.error('Please select at least one course');
     return;
   }
 
-  // Log available fees for debugging
-  console.log('Available student fees:', studentFees);
-  console.log('Looking for semester:', selectedSemester, 'year:', selectedYear);
-
-  // Find fee record - try multiple matching strategies
   const semesterFee = studentFees.find(fee => {
-    // Strategy 1: Exact match in description
     if (fee.description?.includes(selectedSemester) && 
         fee.description?.includes(selectedYear.toString())) {
       return true;
     }
     
-    // Strategy 2: Check if fee type is REGISTRATION
     if (fee.feeType === 'REGISTRATION') {
       return true;
     }
     
-    // Strategy 3: Check if semester field matches
     if (fee.semester === selectedSemester && fee.academicYear === selectedYear) {
       return true;
     }
@@ -381,7 +353,6 @@ const handleOpenPaymentModal = async (): Promise<void> => {
     return false;
   });
   
-  console.log('Found matching fee:', semesterFee);
   
   if (!semesterFee) {
     toast.error('No fee record found. Please contact the finance office.', {
@@ -392,7 +363,6 @@ const handleOpenPaymentModal = async (): Promise<void> => {
   
   setShowPaymentModal(true);
 };
- // Payment functions - Updated to refresh UI after payment
 const handleProcessPayment = async (): Promise<void> => {
   if (!userId) return;
   
@@ -433,8 +403,6 @@ const handleProcessPayment = async (): Promise<void> => {
       toast.success('Payment processed successfully!');
       setShowPaymentModal(false);
       resetPaymentForm();
-      
-      // Refresh ALL data to update UI
       await Promise.all([
         fetchAvailableCourses(),
         fetchRegisteredCourses(),
@@ -442,12 +410,10 @@ const handleProcessPayment = async (): Promise<void> => {
         fetchStudentFees()
       ]);
       
-      // Clear cart after successful payment
       setCart([]);
       
       toast.success('Registration completed! You can now access your courses.');
       
-      // Force a re-render by refreshing the page data again after 1 second
       setTimeout(async () => {
         await Promise.all([
           fetchRegistrationSummary(),
@@ -546,7 +512,6 @@ const handleProcessPayment = async (): Promise<void> => {
         </div>
       </div>
 
-      {/* Registration Summary Card */}
       {summary && summary.totalCourses > 0 && (
         <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg p-4 mb-6 border border-emerald-200">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -570,7 +535,6 @@ const handleProcessPayment = async (): Promise<void> => {
         </div>
       )}
 
-      {/* No Fee Record Message */}
       {!isRegistrationComplete && studentFees.length === 0 && cart.length > 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center mb-6">
           <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-3" />
@@ -584,7 +548,6 @@ const handleProcessPayment = async (): Promise<void> => {
         </div>
       )}
 
-      {/* Registration Complete State */}
       {isRegistrationComplete && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
           <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
@@ -596,10 +559,8 @@ const handleProcessPayment = async (): Promise<void> => {
         </div>
       )}
 
-      {/* Main Registration Interface */}
       {!isRegistrationComplete && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Available Courses - Left Column */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow">
               <div className="p-4 border-b">
@@ -678,7 +639,6 @@ const handleProcessPayment = async (): Promise<void> => {
             </div>
           </div>
 
-          {/* Cart - Right Column */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow sticky top-4">
               <div className="p-4 border-b bg-gradient-to-r from-emerald-50 to-teal-50">
@@ -760,7 +720,6 @@ const handleProcessPayment = async (): Promise<void> => {
         </div>
       )}
 
-      {/* Payment Modal */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
@@ -776,7 +735,6 @@ const handleProcessPayment = async (): Promise<void> => {
                 <p className="text-2xl font-bold text-emerald-600">ETB {calculateTotalFees().toLocaleString()}</p>
               </div>
 
-              {/* Payment Method Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
                 <div className="grid grid-cols-2 gap-2">
@@ -831,7 +789,6 @@ const handleProcessPayment = async (): Promise<void> => {
                 </div>
               </div>
 
-              {/* Payment Reference */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {paymentMethod === 'MOBILE_MONEY' ? 'Transaction Reference' : 'Reference Number'} *
@@ -846,7 +803,6 @@ const handleProcessPayment = async (): Promise<void> => {
                 />
               </div>
 
-              {/* Bank Name (for bank transfer) */}
               {paymentMethod === 'BANK_TRANSFER' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label>
@@ -865,7 +821,6 @@ const handleProcessPayment = async (): Promise<void> => {
                 </div>
               )}
 
-              {/* Mobile Number (for mobile money) */}
               {paymentMethod === 'MOBILE_MONEY' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number *</label>
@@ -882,7 +837,6 @@ const handleProcessPayment = async (): Promise<void> => {
                 </div>
               )}
 
-              {/* Remarks */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Remarks (Optional)</label>
                 <textarea

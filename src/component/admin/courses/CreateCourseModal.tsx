@@ -17,7 +17,7 @@ interface Department {
   name: string;
   code: string;
   description?: string;
-  faculty: string; // Faculty is a string field in Department
+  faculty: string;
   headOfDepartment?: string;
   headEmail?: string;
   contactPhone?: string;
@@ -49,7 +49,6 @@ interface FormData {
   schedule: string;
 }
 
-// API Response types
 interface ApiSuccessResponse<T = any> {
   success: true;
   data: T;
@@ -90,7 +89,6 @@ const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ onClose, onSucces
 
   const semesters = ['FALL', 'SPRING', 'SUMMER'];
 
-  // Extract unique faculties from departments (no need for separate API!)
   const uniqueFaculties = useMemo(() => {
     const faculties = new Set<string>();
     departments.forEach(dept => {
@@ -101,7 +99,6 @@ const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ onClose, onSucces
     return Array.from(faculties).sort();
   }, [departments]);
 
-  // Filter departments based on selected faculty
   const filteredDepartments = useMemo(() => {
     if (!selectedFaculty) return [];
     return departments.filter(dept => dept.faculty === selectedFaculty);
@@ -139,7 +136,7 @@ const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ onClose, onSucces
     setFormData({ 
       ...formData, 
       faculty: faculty,
-      department: '' // Reset department when faculty changes
+      department: '' 
     });
   };
 
@@ -151,7 +148,6 @@ const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ onClose, onSucces
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
     if (!formData.courseCode.trim()) {
       toast.error('Please enter a course code');
       return;
@@ -179,7 +175,6 @@ const CreateCourseModal: React.FC<CreateCourseModalProps> = ({ onClose, onSucces
     
     setIsLoading(true);
 
-    // Prepare data for API - matching backend CourseRequestDTO
     const submitData = {
       courseCode: formData.courseCode,
       courseName: formData.courseName,

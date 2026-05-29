@@ -221,8 +221,6 @@ const FeeManagement: React.FC = () => {
           </button>
         </div>
       </div>
-
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-lg shadow p-4">
           <div className="flex items-center justify-between">
@@ -268,7 +266,6 @@ const FeeManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters */}
       <div className="bg-white rounded-lg shadow p-4 mb-6">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
@@ -302,7 +299,6 @@ const FeeManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Fee Structures Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
@@ -397,7 +393,6 @@ const FeeManagement: React.FC = () => {
         )}
       </div>
 
-      {/* Create Fee Structure Modal */}
       {showCreateModal && (
         <CreateFeeStructureModal 
           onClose={() => setShowCreateModal(false)} 
@@ -405,7 +400,6 @@ const FeeManagement: React.FC = () => {
         />
       )}
 
-      {/* Edit Fee Structure Modal */}
       {showEditModal && selectedFee && (
         <EditFeeStructureModal 
           fee={selectedFee}
@@ -414,7 +408,6 @@ const FeeManagement: React.FC = () => {
         />
       )}
 
-      {/* Generate Student Fee Modal (Single) */}
       {showGenerateModal && (
         <GenerateStudentFeeModal 
           students={students}
@@ -424,7 +417,6 @@ const FeeManagement: React.FC = () => {
         />
       )}
 
-      {/* Bulk Generate Fees Modal */}
       {showBulkGenerateModal && (
         <BulkGenerateFeesModal 
           students={students}
@@ -440,7 +432,6 @@ const FeeManagement: React.FC = () => {
   );
 };
 
-// Create Fee Structure Modal Component
 const CreateFeeStructureModal: React.FC<{ onClose: () => void; onSuccess: () => void }> = ({ onClose, onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -559,7 +550,6 @@ const CreateFeeStructureModal: React.FC<{ onClose: () => void; onSuccess: () => 
   );
 };
 
-// Edit Fee Structure Modal
 const EditFeeStructureModal: React.FC<{ fee: FeeStructure; onClose: () => void; onSuccess: () => void }> = ({ fee, onClose, onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -631,7 +621,6 @@ const EditFeeStructureModal: React.FC<{ fee: FeeStructure; onClose: () => void; 
   );
 };
 
-// Generate Student Fee Modal (Single Student)
 const GenerateStudentFeeModal: React.FC<{ students: Student[]; feeStructures: FeeStructure[]; onClose: () => void; onSuccess: () => void }> = ({ students, feeStructures, onClose, onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -722,8 +711,6 @@ const GenerateStudentFeeModal: React.FC<{ students: Student[]; feeStructures: Fe
   );
 };
 
-// Bulk Generate Fees Modal
-// Bulk Generate Fees Modal - Fixed with formatCurrency defined inside
 const BulkGenerateFeesModal: React.FC<{ 
   students: Student[]; 
   feeStructures: FeeStructure[]; 
@@ -737,7 +724,6 @@ const BulkGenerateFeesModal: React.FC<{
   const [progress, setProgress] = useState({ current: 0, total: 0, successful: 0, failed: 0 });
   const [showProgress, setShowProgress] = useState(false);
 
-  // Define formatCurrency inside the component
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { 
       style: 'currency', 
@@ -747,7 +733,6 @@ const BulkGenerateFeesModal: React.FC<{
     }).format(amount || 0);
   };
 
-  // Filter only registration fee structures
   const registrationFeeStructures = feeStructures?.filter(f => 
     f.feeType === 'REGISTRATION' || f.feeType === 'TUITION'
   ) || [];
@@ -804,7 +789,6 @@ const BulkGenerateFeesModal: React.FC<{
         failed 
       });
       
-      // Small delay to avoid overwhelming the API
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
@@ -902,7 +886,6 @@ const BulkGenerateFeesModal: React.FC<{
             </div>
           )}
 
-          {/* Progress Bar */}
           {showProgress && (
             <div className="space-y-2">
               <div className="flex justify-between text-sm">

@@ -17,7 +17,7 @@ interface Course {
   instructorEmail: string;
   maxStudents: number;
   prerequisites: string;
-  syllabus?: string;  // Made optional
+  syllabus?: string; 
   room: string;
   schedule: string;
 }
@@ -81,7 +81,7 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({ course, onClose, onSu
     instructorEmail: course.instructorEmail || '',
     maxStudents: course.maxStudents,
     prerequisites: course.prerequisites || '',
-    syllabus: course.syllabus || '',  // Safe because we handle undefined with ||
+    syllabus: course.syllabus || '', 
     room: course.room || '',
     schedule: course.schedule || '',
     status: course.status

@@ -48,7 +48,6 @@ interface SectionDetailsModalProps {
   onUpdate: () => void;
 }
 
-// API Response types
 interface ApiSuccessResponse<T = any> {
   success: true;
   data: T;
@@ -194,8 +193,6 @@ const SectionDetailsModal: React.FC<SectionDetailsModalProps> = ({ section, onCl
               </div>
             </div>
           </div>
-
-          {/* Instructors Section */}
           <div>
             <div className="flex justify-between items-center mb-3">
               <h3 className="text-lg font-semibold text-gray-800 flex items-center">

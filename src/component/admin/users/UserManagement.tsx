@@ -16,8 +16,6 @@ interface User {
   isActive: boolean;
   createdAt: string;
 }
-
-// API Response types
 interface ApiSuccessResponse<T = any> {
   success: true;
   data: T;
@@ -53,7 +51,6 @@ const UserManagement: React.FC = () => {
 const fetchUsers = async () => {
   setIsLoading(true);
   try {
-    // Fetch ALL user types - await each promise separately
     const instructorsResult = await registrationApi.getAllInstructors() as ApiResponse<User[]>;
     const adminsResult = await (registrationApi.getAcademicAdministrators?.() || Promise.resolve({ success: true, data: [] })) as ApiResponse<User[]>;
     const managementResult = await (registrationApi.getManagementStaff?.() || Promise.resolve({ success: true, data: [] })) as ApiResponse<User[]>;

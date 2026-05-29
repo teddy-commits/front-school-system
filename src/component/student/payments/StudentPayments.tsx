@@ -104,7 +104,6 @@ const StudentPayments: React.FC = () => {
     }
   };
 
-  // Calculate totals
   const totalPaid = payments
     .filter(p => p.status === 'PAID')
     .reduce((sum, p) => sum + (p.amount || 0), 0);

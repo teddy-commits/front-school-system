@@ -102,7 +102,7 @@ const Homepage: React.FC = () => {
               </span>
             </Link>
 
-            {/* Desktop Menu */}
+           
             <div className="hidden md:flex items-center space-x-8">
               <a href="#home" className={`${scrolled ? 'text-gray-600' : 'text-white'} hover:text-blue-500 transition`}>Home</a>
               <a href="#about" className={`${scrolled ? 'text-gray-600' : 'text-white'} hover:text-blue-500 transition`}>About</a>
@@ -110,7 +110,7 @@ const Homepage: React.FC = () => {
               <a href="#admissions" className={`${scrolled ? 'text-gray-600' : 'text-white'} hover:text-blue-500 transition`}>Admissions</a>
               <a href="#campus" className={`${scrolled ? 'text-gray-600' : 'text-white'} hover:text-blue-500 transition`}>Campus</a>
               
-              {/* Login Buttons */}
+              
               <Link
                 to="/login/staff"
                 className={`px-4 py-2 rounded-lg font-medium transition ${
@@ -129,7 +129,6 @@ const Homepage: React.FC = () => {
               </Link>
             </div>
 
-            {/* Mobile Menu Button */}
             <button 
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className={`md:hidden ${scrolled ? 'text-gray-800' : 'text-white'}`}
@@ -138,7 +137,6 @@ const Homepage: React.FC = () => {
             </button>
           </div>
 
-          {/* Mobile Menu */}
           {isMenuOpen && (
             <div className="md:hidden mt-4 pb-4 space-y-3">
               <a href="#home" className="block text-gray-600 hover:text-blue-600 py-2">Home</a>
@@ -157,9 +155,7 @@ const Homepage: React.FC = () => {
         </div>
       </nav>
 
-      {/* Hero Section */}
       <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        {/* Background Image with Overlay */}
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
@@ -168,8 +164,6 @@ const Homepage: React.FC = () => {
         >
           <div className="absolute inset-0 bg-gradient-to-r from-blue-900/90 to-purple-900/80" />
         </div>
-
-        {/* Animated Elements */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute top-20 left-10 animate-float">
             <GraduationCap className="w-12 h-12 text-white/20" />
@@ -182,7 +176,6 @@ const Homepage: React.FC = () => {
           </div>
         </div>
 
-        {/* Hero Content */}
         <div className="relative z-10 container mx-auto px-4 text-center">
           <div className="inline-flex items-center px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm text-white text-sm mb-6">
             <span className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></span>
@@ -219,7 +212,6 @@ const Homepage: React.FC = () => {
             </Link>
           </div>
 
-          {/* Stats Section */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16 pt-8">
             {stats.map((stat, index) => (
               <div key={index} className="text-center">
@@ -231,13 +223,11 @@ const Homepage: React.FC = () => {
           </div>
         </div>
 
-        {/* Scroll Indicator */}
         <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
           <ChevronDown className="w-6 h-6 text-white" />
         </div>
       </section>
 
-      {/* Features Section */}
       <section id="about" className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
@@ -263,7 +253,6 @@ const Homepage: React.FC = () => {
         </div>
       </section>
 
-      {/* Programs Section */}
       <section id="programs" className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
@@ -298,8 +287,6 @@ const Homepage: React.FC = () => {
           </div>
         </div>
       </section>
-
-      {/* Campus Highlights */}
       <section id="campus" className="py-20 bg-gradient-to-r from-blue-600 to-purple-600">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
@@ -323,7 +310,6 @@ const Homepage: React.FC = () => {
         </div>
       </section>
 
-      {/* News Section */}
       <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
@@ -352,7 +338,6 @@ const Homepage: React.FC = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
       <section className="py-16 bg-blue-900">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
@@ -378,7 +363,6 @@ const Homepage: React.FC = () => {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="bg-gray-900 text-gray-300 pt-16 pb-8">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
@@ -443,7 +427,6 @@ const Homepage: React.FC = () => {
         </div>
       </footer>
 
-      {/* Custom CSS for animations */}
       <style>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
@@ -476,7 +459,6 @@ const Homepage: React.FC = () => {
   );
 };
 
-// Add missing Code icon
 const Code = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
